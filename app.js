@@ -13,7 +13,13 @@ const G = {
   'empathic confrontation':{def:'Gently pointing out a contradiction between what someone says and what they do — done with warmth, not challenge.',ex:'"I notice you\'ve said you\'ve wanted this for years — and each time we get close, a new reason appears."'},
   'paraphrase':{def:'Putting what someone said in your own words — shorter and cleaner, capturing the meaning.',ex:'They say: "Everyone says I should be over it." You: "So while others feel you should have moved on, for you it still feels very present."'},
   'cultural humility':{def:'Approaching someone from a different background with curiosity and openness rather than assumptions.',ex:'"I want to understand your experience of this. What has this been like for your family?"'},
-  'ambivalence':{def:'Wanting two contradictory things at once. Normal and central to MI work. Your job is to help them explore both sides.',ex:'"It sounds like part of you wants to help him, and another part wonders if your help is actually helping."'}
+  'ambivalence':{def:'Wanting two contradictory things at once. Normal and central to MI work. Your job is to help them explore both sides.',ex:'"It sounds like part of you wants to help him, and another part wonders if your help is actually helping."'},
+  'transference':{def:'When a client unconsciously redirects feelings from a past relationship onto you. They may idealise you, become angry, or act dependent in ways that mirror earlier relationships.',ex:'A client who grew up with a critical parent starts apologising constantly to you, as if expecting the same criticism.'},
+  'defence mechanism':{def:'Unconscious strategies people use to avoid painful feelings — like intellectualising, deflecting with humour, denying, or projecting feelings onto others.',ex:'A client talks about their divorce in a completely detached, analytical way — the intellectualisation is protecting them from the grief underneath.'},
+  'free association':{def:'Encouraging the client to say whatever comes to mind without censoring. What surfaces unexpectedly is often the most significant material.',ex:'Rather than directing the conversation: "Just say whatever comes to mind as you think about that memory."'},
+  'making connections':{def:'Gently linking what a client experiences now with patterns from their past — helping them see how history shows up in the present.',ex:'"I notice you used almost the same words to describe your mother as you used to describe your boss. I wonder if you notice that too?"'},
+  'sitting with':{def:'Tolerating discomfort or uncertainty without rushing to fix or fill the silence. What is not said is often as important as what is.',ex:'When a client goes quiet after mentioning their mother, you wait. Then: "What just happened there for you?"'},
+  'projection':{def:'Attributing your own unacceptable feelings to someone else. A client who feels angry may accuse others of being angry at them.',ex:'A client says "everyone at work hates me" — but when explored, it emerges they feel a deep self-hatred they cannot tolerate owning.'}
 };
 
 function showTT(term){const g=G[term];if(!g)return;document.getElementById('tt-term').textContent=term;document.getElementById('tt-def').textContent=g.def;const ex=document.getElementById('tt-ex');if(g.ex){ex.textContent=g.ex;ex.style.display='block';}else ex.style.display='none';document.getElementById('tt').classList.add('show');}
@@ -91,6 +97,38 @@ const SCENARIOS = {
      sys:'You are Tracey, 48. Exhausted and guilty, caught between keeping Josh safe and knowing it might be making things worse. If the student helps you explore both sides without judging, open up more. If they tell you what to do or take a side, become defensive. 2-3 sentences. Stay in character.',
      learn:{explain:"Ambivalence — wanting two contradictory things at once — is at the heart of MI. Your job is not to resolve this for Tracey or take a side. You help her explore both sides so her own motivation for change can emerge. As soon as you tell her what to do, she stops listening.",ex:"Rather than 'You need to stop enabling him,' try: 'It sounds like you're pulled in two directions — you love him and want to keep him safe, and there's also a part of you that wonders whether this is actually helping. What does that tension feel like?'",phrases:["It sounds like part of you... and another part of you...","What does it feel like to be caught between those two things?","What do you most want for him?","What do you most want for yourself?"]},
      turns:5,pts:120}
+  ],
+  psychodynamic: [
+    {id:'pd1',title:"The perfectionist",difficulty:'beginner',skill:'Defence Mechanisms',skillKey:'pdDefence',unlock:null,
+     client:{name:'Claire',av:'C',ctx:"Claire is 34. Highly successful but constantly exhausted. She talks about everything analytically and laughs things off. She rarely expresses emotion directly."},
+     opener:"I know I should probably slow down but honestly I just... I work well under pressure. Everyone says I look tired but I feel fine. I just need to be more organised, I think. That's probably why I'm here.",
+     sys:'You are Claire, 34. Highly defended — you intellectualise everything and deflect with humour. When the therapist gently names a defence, pause and become slightly more vulnerable. If they push too hard, retreat back to analysis. Bright, capable, slightly brittle. 2-3 sentences. Stay in character.',
+     learn:{explain:"Defence mechanisms are unconscious strategies people use to avoid painful feelings. Common ones include intellectualising (analysing instead of feeling), deflecting with humour, minimising, and denial. In psychodynamic work you gently name what you notice — not to challenge, but to open a door.",ex:"Client laughs: 'I just need to be more organised.' Rather than going along: 'I notice you moved quite quickly to a practical solution there. What was happening just before that thought?'",phrases:["I notice you moved to...","What was happening just before that?","I'm curious about the laugh just then...","What would it mean if it wasn't just about being organised?"]},
+     turns:5,pts:90},
+    {id:'pd2',title:"Always the caretaker",difficulty:'beginner',skill:'Unconscious Patterns',skillKey:'pdPatterns',unlock:'pd1',
+     client:{name:'Marcus',av:'M',ctx:"Marcus is 41. Burnt out from looking after everyone — his ageing parents, colleagues, friends. He has no idea what he wants for himself."},
+     opener:"I don't really know why I'm here. Everyone else has real problems. My mate just went through a divorce, my mum's not well... I feel guilty even taking up your time when there are people who actually need help.",
+     sys:'You are Marcus, 41. You deflect attention from yourself constantly — always talking about others, minimising your own needs. When the therapist gently keeps bringing focus back to you, become slightly confused but curious — like you have never really been asked about yourself. 2-3 sentences. Stay in character.',
+     learn:{explain:"Some clients have unconscious patterns that run their lives — like always putting others first to the point of erasing themselves. In psychodynamic work you notice and name these patterns with curiosity, not judgment. You are also curious about where the pattern came from.",ex:"Marcus deflects to his friend. Rather than following him there: 'I notice you moved away from yourself quite quickly towards your friend. What happens for you when the focus is on you?'",phrases:["I notice you moved away from yourself just then...","What happens when I ask about you rather than the others?","I'm curious — who looks after Marcus?","What would it feel like to let yourself be here, just for you?"]},
+     turns:5,pts:90},
+    {id:'pd3',title:"The charmer who keeps people away",difficulty:'intermediate',skill:'Transference',skillKey:'pdTransference',unlock:'pd2',
+     client:{name:'Jake',av:'J',ctx:"Jake is 29. Charming, funny, immediately likeable. Has never stayed in a relationship longer than three months. Says he gets bored but there is something more underneath."},
+     opener:"I mean, I'm probably your most entertaining client, right? *laughs* Don't worry, I'm easy. I don't have baggage or anything. I just thought it might be interesting to try therapy. See what all the fuss is about.",
+     sys:'You are Jake, 29. Charming and funny, using humour to keep people at a distance. Terrified of being truly known or rejected. You idealise the therapist early on. If the therapist gently notices your pattern, become briefly more real before deflecting again with a joke. If they join your jokes and stay on the surface, stay defended. 2-3 sentences. Stay in character.',
+     learn:{explain:"Transference is when a client unconsciously brings feelings from past relationships into the therapy room — often towards you. Jake's charm may be a way of getting people to like him before they can reject him. What Jake does with you is likely what he does everywhere. You notice what is happening in the relationship right now — not as a problem, but as information.",ex:"Jake makes a joke to deflect. Rather than laughing and moving on: 'I notice you made me laugh just then — and we moved away from something. I'm curious about that. What happens when things get a bit more real?'",phrases:["I notice what just happened between us...","You made me laugh — and we moved away from something. I'm curious about that.","What happens when people get close to you?","I wonder if what happens out there might be happening a little in here too?"]},
+     turns:5,pts:100},
+    {id:'pd4',title:"Her mother's daughter",difficulty:'intermediate',skill:'Making Connections',skillKey:'pdConnections',unlock:'pd3',
+     client:{name:'Rina',av:'R',ctx:"Rina is 38. In a relationship with a highly critical partner. Grew up with a critical, demanding mother. She has never connected these two things."},
+     opener:"He's not a bad person. He just has very high standards. I know I frustrate him. I try harder but I never quite get it right. It's been like this my whole life honestly — I've always felt like I'm falling slightly short of what's expected.",
+     sys:'You are Rina, 38. You normalise the criticism you receive because it is all you have ever known. You genuinely have not connected your partner to your mother. When the therapist gently makes the link, become very still and thoughtful — like something is landing for the first time. Sit with it. 2-3 sentences. Stay in character.',
+     learn:{explain:"Making connections is one of the most powerful tools in psychodynamic work — gently linking what a client experiences now with patterns from their past. It is not about telling them what their history means. It is about opening a door and inviting them to look through it themselves.",ex:"Rina describes feeling like she always falls short. You have heard her describe her mother the same way. Try: 'I'm struck by something. You used almost the same words to describe your mother as you used to describe your partner. I wonder if you notice that too?'",phrases:["I'm struck by something you just said...","You used almost the same words just now as when you described...","I wonder if there's a connection between what's happening now and what you've described from earlier in your life?","What comes up for you when I say that?"]},
+     turns:6,pts:110},
+    {id:'pd5',title:"The one who can't be angry",difficulty:'advanced',skill:'Sitting with the Unsaid',skillKey:'pdUnsaid',unlock:'pd4',
+     client:{name:'Daniel',av:'D',ctx:"Daniel is 44. His father was emotionally abusive. Daniel never got angry — he learned it was not safe. Now he presents as calm, reasonable, and slightly flat. The anger is there, deep underneath."},
+     opener:"I had a good week actually. Nothing much happened. Work was fine. I saw my dad on Sunday — that was fine too. Just the usual. He made a comment about my job again but you know, he's just like that. It doesn't bother me.",
+     sys:'You are Daniel, 44. Deeply defended against your anger because expressing it was never safe growing up. Calm and flat on the surface. When the therapist sits with silence rather than filling it, or gently notices the flatness, something may shift. If they ask directly are you angry, deny it. If they are curious and patient, something small and real might surface. 2-3 sentences. Stay in character.',
+     learn:{explain:"Sometimes the most important thing a therapist can do is not fill the silence. In psychodynamic work, what is not said — the flatness, the pause, the subject that gets passed over — is often more significant than what is said. Sitting with the unsaid means being comfortable with discomfort and naming what you observe in the room.",ex:"Daniel says 'it doesn't bother me' with complete flatness. Rather than accepting this — sit with silence. Then: 'I notice something happened in you just then when you mentioned the comment. Something got very quiet. I'm curious about that quiet.'",phrases:["I notice something got very quiet just then...","What just happened there for you?","I'm going to sit with that for a moment...","You said it was fine — and something in the room felt different when you said it.","What isn't being said right now?"]},
+     turns:6,pts:120}
   ]
 };
 
@@ -100,7 +138,7 @@ const SKILL_NAMES = {reflecting:'Reflecting Feelings',paraphrasing:'Paraphrasing
 let state = loadState();
 function loadState(){
   try{const s=JSON.parse(localStorage.getItem('cst_state'));if(s)return s;}catch(e){}
-  return {pts:0,streak:0,done:[],skills:{reflecting:0,paraphrasing:0,openQuestions:0,summarising:0,confrontation:0,oarsBasic:0,resistance:0,discrepancy:0,culturalMI:0,changeTalk:0,enabling:0},track:'micro',notes:[],journal:[],skillHistory:{}};
+  return {pts:0,streak:0,done:[],skills:{reflecting:0,paraphrasing:0,openQuestions:0,summarising:0,confrontation:0,oarsBasic:0,resistance:0,discrepancy:0,culturalMI:0,changeTalk:0,enabling:0,pdDefence:0,pdPatterns:0,pdTransference:0,pdConnections:0,pdUnsaid:0},track:'micro',notes:[],journal:[],skillHistory:{}};
 }
 function saveState(){localStorage.setItem('cst_state',JSON.stringify(state));}
 
@@ -139,6 +177,7 @@ function switchTrack(t){
   state.track=t;saveState();
   document.getElementById('tt-micro').classList.toggle('active',t==='micro');
   document.getElementById('tt-mi').classList.toggle('active',t==='mi');
+  document.getElementById('tt-pd').classList.toggle('active',t==='psychodynamic');
   renderScenarios();renderProgressBars();
 }
 
@@ -173,7 +212,7 @@ function renderProgressBars(){
 // ─── KNOWLEDGE SELECT ─────────────────────────────────────────────────────────
 function openKS(id){
   pendingId=id;
-  const all=[...SCENARIOS.micro,...SCENARIOS.mi];
+  const all=[...SCENARIOS.micro,...SCENARIOS.mi,...SCENARIOS.psychodynamic];
   const s=all.find(x=>x.id===id);
   document.getElementById('ks-head').textContent=s.title;
   ['new','some','expert'].forEach(l=>document.getElementById('kl-'+l).classList.remove('sel'));
@@ -190,7 +229,7 @@ function pickLevel(l){
 
 // ─── ROLEPLAY ─────────────────────────────────────────────────────────────────
 function startRP(){
-  const all=[...SCENARIOS.micro,...SCENARIOS.mi];
+  const all=[...SCENARIOS.micro,...SCENARIOS.mi,...SCENARIOS.psychodynamic];
   const s=all.find(x=>x.id===pendingId);
   sess={scenario:s,level:sess.level,hist:[],trn:0,pts:0,lastC:s.opener,busy:false,lastFB:''};
 
@@ -272,9 +311,10 @@ async function send(){
   try{
     // Feedback
     const li=sess.level==='new'?'Beginner - explain in plain English. Name the technique clearly.':sess.level==='some'?'Intermediate - name the technique, note what landed, give one suggestion.':'Experienced - use MI terminology precisely.';
+    const isPD=s.id.startsWith('pd');
     const fbQ=isS2
       ?`You are a warm expert MI supervisor. Session 2 - goal is drawing out change talk and decisional balance. Turn: ${sess.trn+1}. Client said: "${sess.lastC}". Student said: "${txt}". ${li} Did they notice and reflect change talk? Explore both sides (costs and hopes)? Use affirming, open questions, summarising? Give 2-3 sentences: 1) what they did well using MI terms (change talk, decisional balance, amplifying, affirming, open question, reflecting, summarising) 2) one specific suggestion. Under 70 words. Encouraging. End with new line: GOOD, PARTIAL, or NEEDS_WORK`
-      :`You are a warm expert MI supervisor. Scenario: ${s.title}. Skill: ${s.skill}. Turn: ${sess.trn+1}. Client said: "${sess.lastC}". Student said: "${txt}". ${li} Give 2-3 sentences: 1) what they did well (open question, affirming, reflecting, summarising, OARS, rolling with resistance, developing discrepancy, empathic confrontation, cultural humility, paraphrase) 2) one specific suggestion. Under 70 words. Encouraging. End with new line: GOOD, PARTIAL, or NEEDS_WORK`;
+      :isPD?`You are a warm expert psychodynamic supervisor. Scenario: ${s.title}. Skill: ${s.skill}. Turn: ${sess.trn+1}. Client said: "${sess.lastC}". Student said: "${txt}". ${li} Did they name a defence mechanism, notice transference, make a past-present connection, sit with silence, or use free association? Give 2-3 sentences: 1) what they did well using psychodynamic terms (defence mechanism, transference, making connections, sitting with the unsaid, free association, unconscious pattern) 2) one specific suggestion. Under 70 words. Encouraging. End with new line: GOOD, PARTIAL, or NEEDS_WORK`:`You are a warm expert counselling supervisor. Scenario: ${s.title}. Skill: ${s.skill}. Turn: ${sess.trn+1}. Client said: "${sess.lastC}". Student said: "${txt}". ${li} Give 2-3 sentences: 1) what they did well (open question, affirming, reflecting, summarising, OARS, rolling with resistance, developing discrepancy, empathic confrontation, cultural humility, paraphrase) 2) one specific suggestion. Under 70 words. Encouraging. End with new line: GOOD, PARTIAL, or NEEDS_WORK`;
     const fbRaw=await api({model:'claude-sonnet-4-6',max_tokens:300,messages:[{role:'user',content:fbQ}]});
     const lines=fbRaw.split('\n');
     const rl=lines.find(l=>/^(GOOD|PARTIAL|NEEDS_WORK)$/.test(l.trim()));
