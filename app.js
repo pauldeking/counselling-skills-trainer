@@ -433,14 +433,14 @@ function bumpAttempt(scenarioId){
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let state = loadState();
 function loadState(){
-  const blank = {pts:0,streak:0,done:[],skills:{},currentModality:null,notes:[],journal:[],skillHistory:{},attempts:{}};
+  const blank = {pts:0,streak:0,done:[],skills:{},currentModality:null,notes:[],journal:[],skillHistory:{},attempts:{},quiz:{bySkill:{},history:[]}};
   Object.keys(SN).forEach(k=>blank.skills[k]=0);
   try{
     const s=JSON.parse(localStorage.getItem('cst_state_v2'));
     if(s){
       s.skills=s.skills||{};
       Object.keys(SN).forEach(k=>{if(typeof s.skills[k]!=='number')s.skills[k]=0;});
-      s.done=s.done||[];s.notes=s.notes||[];s.journal=s.journal||[];s.skillHistory=s.skillHistory||{};s.attempts=s.attempts||{};
+      s.done=s.done||[];s.notes=s.notes||[];s.journal=s.journal||[];s.skillHistory=s.skillHistory||{};s.attempts=s.attempts||{};s.quiz=s.quiz||{bySkill:{},history:[]};s.quiz.bySkill=s.quiz.bySkill||{};s.quiz.history=s.quiz.history||[];
       return s;
     }
     // one-time migration from the old single-track state
@@ -537,9 +537,19 @@ function renderScenarioList(){
     </div>`;
   }).join('');
 
+  const allDone=list.length>0&&list.every(x=>state.done.includes(x.id));
+  const qb=document.createElement('button');
+  qb.className='quiz-cta'+(allDone?'':' quiz-locked');
+  qb.textContent=allDone?'\u{1F9E0} Mixed quiz on '+m.name+' \u2192':'\u{1F512} Mixed quiz unlocks when all scenarios are done';
+  if(allDone)qb.onclick=()=>startModalityQuiz(m.id);
+  const holder=document.getElementById('sl-scenarios');
+  holder.appendChild(qb);
+
   document.getElementById('sl-progress').innerHTML=m.skillKeys.map(k=>{
     const p=Math.min(100,state.skills[k]||0);
-    return `<div class="skill-row"><div class="skill-name">${SN[k]}</div><div class="skill-bar-bg"><div class="skill-bar-fill" style="width:${p}%"></div></div><div class="skill-pct">${p}%</div></div>`;
+    const kp=knowledgePct(k);
+    return `<div class="skill-row"><div class="skill-name">${SN[k]}</div><div class="skill-bar-bg"><div class="skill-bar-fill" style="width:${p}%"></div></div><div class="skill-pct">${p}%</div></div>`+
+      (kp!==null?`<div style="font-size:11px;color:var(--text-muted);margin:-4px 0 9px 0">quiz knowledge: ${kp}%</div>`:'');
   }).join('');
 }
 
@@ -836,13 +846,15 @@ function renderProgress(){
       const hist=state.skillHistory[k]||[];
       const pct=Math.min(100,state.skills[k]||0);
       const dots=hist.slice(-8).map(h=>`<div class="trend-dot ${h.rating==='GOOD'?'good':h.rating==='PARTIAL'?'partial':'needs'}" title="${h.rating}">${h.rating==='GOOD'?'✓':h.rating==='PARTIAL'?'~':'✗'}</div>`).join('');
+      const kp=knowledgePct(k);
+      const gap=(kp!==null)?`<div style="font-size:11px;color:var(--text-muted);padding-left:170px;margin-top:3px">practice ${pct}% \u00b7 knowledge ${kp}%${Math.abs(kp-pct)>=30?(kp>pct?' \u2014 knows it, needs live practice':' \u2014 doing it well, worth naming why'):''}</div>`:'';
       return `<div style="margin-bottom:16px">
         <div class="trend-bar-row">
           <div class="trend-label">${SN[k]}</div>
           <div class="trend-bar-bg"><div class="trend-bar-fill" style="width:${pct}%"></div></div>
           <div class="trend-pct">${pct}%</div>
         </div>
-        <div class="trend-sessions" style="padding-left:170px">${dots}</div>
+        <div class="trend-sessions" style="padding-left:170px">${dots}</div>${gap}
       </div>`;
     }).join('');
     return `<div style="margin-bottom:22px"><div class="sec-label" style="margin-bottom:10px">${m.icon} ${m.name}</div>${rows}</div>`;
@@ -855,6 +867,191 @@ async function api(body){
   const d=await r.json();
   if(!d.content||!d.content[0])throw new Error(JSON.stringify(d));
   return d.content[0].text;
+}
+
+
+// ─── QUIZ ─────────────────────────────────────────────────────────────────────
+// Applied discrimination practice: a client statement plus four candidate
+// responses. Knowledge is tracked separately from live practice, because the gap
+// between the two is the useful teaching signal.
+
+let quiz = {qs:[],i:0,correct:0,answered:false,origin:'home',title:'',skills:[]};
+
+function skillSource(k){
+  const s=allScenarios().find(x=>x.skillKey===k);
+  if(!s)return {name:SN[k]||k,explain:'',ex:''};
+  return {name:SN[k],explain:s.learn.explain,ex:s.learn.ex};
+}
+
+async function genQuiz(skillKeys,n){
+  const brief=skillKeys.map(k=>{
+    const src=skillSource(k);
+    return '- '+src.name+' (key: '+k+'): '+src.explain+' Example: '+src.ex;
+  }).join('\n');
+  const prompt =
+    'You are writing an applied multiple-choice quiz for counselling students. This is NOT a definitions test — every question must present a real client statement and ask which counsellor response best demonstrates the target skill.\n\n'+
+    'Skills to cover:\n'+brief+'\n\n'+
+    'Write exactly '+n+' questions, spread across the skills listed above.\n\n'+
+    'For each question:\n'+
+    '- "stem" is what the client says, in natural spoken English, 1-2 sentences.\n'+
+    '- "options" is exactly 4 possible counsellor responses. One clearly demonstrates the target skill. The other 3 are plausible mistakes a real student makes: giving advice, asking a closed question, reassuring too quickly, jumping to a solution, or naming the wrong thing. Distractors must sound reasonable, not obviously silly.\n'+
+    '- "correct" is the 0-based index of the best response.\n'+
+    '- "why" is exactly 4 short explanations, one per option in the same order, each under 25 words, saying plainly why that response does or does not demonstrate the skill. Write for someone new to counselling: no unexplained jargon.\n'+
+    '- "skillKey" is the key of the skill being tested, exactly as given above.\n\n'+
+    'Respond with ONLY a JSON array, no preamble and no markdown fences:\n'+
+    '[{"skillKey":"...","stem":"...","options":["...","...","...","..."],"correct":0,"why":["...","...","...","..."]}]';
+
+  const raw=await api({model:'claude-sonnet-4-6',max_tokens:3000,messages:[{role:'user',content:prompt}]});
+  const clean=raw.replace(/```json|```/g,'').trim();
+  const start=clean.indexOf('['), end=clean.lastIndexOf(']');
+  const parsed=JSON.parse(clean.slice(start,end+1));
+  return parsed.filter(q=>
+    q && typeof q.stem==='string' &&
+    Array.isArray(q.options) && q.options.length===4 &&
+    Array.isArray(q.why) && q.why.length===4 &&
+    typeof q.correct==='number' && q.correct>=0 && q.correct<4 &&
+    SN[q.skillKey]
+  );
+}
+
+function startScenarioQuiz(){
+  const s=sess.scenario;
+  if(!s)return;
+  launchQuiz([s.skillKey],4,'done','Quiz — '+s.skill);
+}
+function startModalityQuiz(modId){
+  const m=getModality(modId);
+  launchQuiz(m.skillKeys,8,'list','Quiz — '+m.name);
+}
+
+async function launchQuiz(skillKeys,n,origin,title){
+  quiz={qs:[],i:0,correct:0,answered:false,origin:origin,title:title,skills:skillKeys};
+  showScreen('quiz');
+  document.getElementById('quiz-count').textContent='';
+  document.getElementById('quiz-track-fill').style.width='0%';
+  document.getElementById('quiz-body').innerHTML='<div class="loading">Writing your questions...</div>';
+  try{
+    const qs=await genQuiz(skillKeys,n);
+    if(!qs.length)throw new Error('no questions');
+    quiz.qs=qs;
+    renderQ();
+  }catch(e){
+    const b=document.getElementById('quiz-body');
+    b.innerHTML='';
+    const p=document.createElement('div');p.className='loading';
+    p.textContent='Could not build the quiz just now — please try again in a moment.';
+    const again=document.createElement('button');again.className='quiz-cta';again.textContent='Try again';
+    again.onclick=()=>launchQuiz(skillKeys,n,origin,title);
+    b.appendChild(p);b.appendChild(again);
+  }
+}
+
+function renderQ(){
+  const q=quiz.qs[quiz.i];
+  quiz.answered=false;
+  document.getElementById('quiz-count').textContent='Question '+(quiz.i+1)+' of '+quiz.qs.length;
+  document.getElementById('quiz-track-fill').style.width=Math.round(quiz.i/quiz.qs.length*100)+'%';
+
+  const b=document.getElementById('quiz-body');b.innerHTML='';
+
+  const pill=document.createElement('div');pill.className='quiz-skill';pill.textContent=SN[q.skillKey]||quiz.title;
+  const stem=document.createElement('div');stem.className='quiz-stem';
+  const sl=document.createElement('div');sl.className='quiz-stem-lbl';sl.textContent='The client says';
+  const st=document.createElement('div');st.className='quiz-stem-txt';st.textContent=q.stem;
+  stem.appendChild(sl);stem.appendChild(st);
+  const ask=document.createElement('div');ask.className='quiz-ask';ask.textContent='Which response best demonstrates '+(SN[q.skillKey]||'this skill')+'?';
+
+  b.appendChild(pill);b.appendChild(stem);b.appendChild(ask);
+
+  const wrap=document.createElement('div');wrap.id='quiz-opts';
+  q.options.forEach((opt,idx)=>{
+    const btn=document.createElement('button');
+    btn.className='quiz-opt';btn.id='qo-'+idx;btn.textContent=opt;
+    btn.onclick=()=>answerQ(idx);
+    wrap.appendChild(btn);
+  });
+  b.appendChild(wrap);
+}
+
+function answerQ(idx){
+  if(quiz.answered)return;
+  quiz.answered=true;
+  const q=quiz.qs[quiz.i];
+  const right=idx===q.correct;
+  if(right)quiz.correct++;
+
+  recordKnowledge(q.skillKey,right);
+
+  q.options.forEach((opt,i)=>{
+    const btn=document.getElementById('qo-'+i);
+    btn.disabled=true;
+    if(i===q.correct)btn.classList.add('correct');
+    else if(i===idx)btn.classList.add('wrong');
+    else btn.classList.add('dim');
+    const why=document.createElement('div');
+    why.className='quiz-why '+(i===q.correct?'good':'bad');
+    why.textContent=q.why[i]||'';
+    btn.insertAdjacentElement('afterend',why);
+  });
+
+  const next=document.createElement('button');
+  next.className='quiz-cta';
+  next.textContent=quiz.i<quiz.qs.length-1?'Next question →':'See results →';
+  next.onclick=()=>{ if(quiz.i<quiz.qs.length-1){quiz.i++;renderQ();} else finishQuiz(); };
+  document.getElementById('quiz-body').appendChild(next);
+}
+
+function recordKnowledge(k,right){
+  if(!state.quiz)state.quiz={bySkill:{},history:[]};
+  if(!state.quiz.bySkill[k])state.quiz.bySkill[k]={asked:0,correct:0};
+  state.quiz.bySkill[k].asked++;
+  if(right)state.quiz.bySkill[k].correct++;
+  saveState();
+}
+
+function finishQuiz(){
+  const total=quiz.qs.length, got=quiz.correct;
+  const pct=Math.round(got/total*100);
+  const earned=got*5;
+  state.pts+=earned;
+  if(!state.quiz)state.quiz={bySkill:{},history:[]};
+  state.quiz.history.unshift({date:new Date().toLocaleDateString('en-AU'),title:quiz.title,score:got,total:total,pts:earned});
+  saveState();
+
+  document.getElementById('quiz-track-fill').style.width='100%';
+  document.getElementById('quiz-count').textContent='Complete';
+  const b=document.getElementById('quiz-body');b.innerHTML='';
+
+  const res=document.createElement('div');res.className='quiz-res';
+  const num=document.createElement('div');num.className='quiz-res-num';num.textContent=got+'/'+total;
+  const lbl=document.createElement('div');lbl.className='quiz-res-lbl';
+  lbl.textContent=pct>=75?'Strong recognition of the skill':pct>=50?'Getting there — worth another run':'Worth revisiting the skill explanation';
+  res.appendChild(num);res.appendChild(lbl);
+
+  const note=document.createElement('div');note.className='quiz-res-note';
+  note.textContent='This is your knowledge score. It is tracked separately from your practice score, because recognising a good response and producing one live are different skills — the gap between them is worth noticing.';
+
+  const pts=document.createElement('div');pts.className='quiz-res-lbl';pts.style.marginTop='10px';pts.textContent='+'+earned+' points';
+
+  b.appendChild(res);b.appendChild(pts);b.appendChild(note);
+
+  const again=document.createElement('button');again.className='quiz-cta';again.textContent='New set of questions';
+  again.onclick=()=>launchQuiz(quiz.skills,quiz.qs.length,quiz.origin,quiz.title);
+  const back=document.createElement('button');back.className='quiz-cta';back.textContent='Done';
+  back.onclick=()=>exitQuiz();
+  b.appendChild(again);b.appendChild(back);
+}
+
+function exitQuiz(){
+  if(quiz.origin==='done')showScreen('done');
+  else if(quiz.origin==='list')goScenarioList();
+  else goHome();
+}
+
+function knowledgePct(k){
+  const q=state.quiz&&state.quiz.bySkill&&state.quiz.bySkill[k];
+  if(!q||!q.asked)return null;
+  return Math.round(q.correct/q.asked*100);
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
