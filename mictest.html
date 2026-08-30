@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Microphone check — Counselling Skills Trainer</title>
+<style>
+  body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:1.25rem;background:#f7f8fa;color:#2c3340;}
+  h1{font-size:19px;margin:0 0 4px;color:#1a3a5c;}
+  .sub{font-size:13px;color:#6b7280;margin:0 0 18px;line-height:1.5;}
+  .row{display:flex;gap:8px;padding:8px 0;border-bottom:1px solid #e3e7ed;font-size:13px;align-items:flex-start;}
+  .k{min-width:145px;font-weight:600;color:#1a3a5c;flex-shrink:0;}
+  .v{word-break:break-word;}
+  .ok{color:#15803d;font-weight:600;}
+  .bad{color:#b91c1c;font-weight:600;}
+  .warn{color:#b45309;font-weight:600;}
+  button{background:#1a3a5c;color:#fff;border:none;border-radius:9px;padding:12px 22px;font-size:15px;font-weight:600;cursor:pointer;margin:18px 8px 8px 0;font-family:inherit;}
+  button.stop{background:#dc2626;}
+  #verdict{margin-top:16px;padding:12px 14px;border-radius:10px;font-size:14px;line-height:1.5;display:none;}
+  #verdict.good{background:#f0fdf4;border:1px solid #86efac;color:#15803d;}
+  #verdict.bad{background:#fef2f2;border:1px solid #fca5a5;color:#b91c1c;}
+  #heard{background:#fff;border:1.5px solid #c8d8ec;border-radius:9px;padding:11px;min-height:46px;font-size:14px;margin-top:8px;line-height:1.5;}
+  #log{background:#1a3a5c;color:#e2e8f0;font-family:ui-monospace,monospace;font-size:11.5px;padding:11px;border-radius:9px;height:180px;overflow-y:auto;white-space:pre-wrap;margin-top:8px;}
+  .lbl{font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-top:16px;}
+  a{color:#1a3a5c;}
+</style>
+</head>
+<body>
+<h1>Microphone check</h1>
+<p class="sub">If the voice button is missing or not working in the trainer, run this. It shows whether the problem is your browser, the microphone permission, or something else.</p>
+<div id="checks"></div>
+<div id="verdict"></div>
+<button id="go">Start listening</button>
+<button id="stop" class="stop" style="display:none">Stop</button>
+<div class="lbl">What it heard</div>
+<div id="heard"><em style="color:#9ca3af">nothing yet</em></div>
+<div class="lbl">Event log</div>
+<div id="log"></div>
+<p class="sub" style="margin-top:18px"><a href="/">&#8592; Back to the trainer</a></p>
+<script>
+(function(){
+  var checksEl=document.getElementById("checks"),logEl=document.getElementById("log"),
+      heardEl=document.getElementById("heard"),goBtn=document.getElementById("go"),
+      stopBtn=document.getElementById("stop"),verdictEl=document.getElementById("verdict");
+  var rec=null,want=false,base="";
+  function log(m){logEl.textContent+="["+new Date().toLocaleTimeString()+"] "+m+"\n";logEl.scrollTop=logEl.scrollHeight;}
+  function row(k,v,cls){
+    var d=document.createElement("div");d.className="row";
+    var a=document.createElement("span");a.className="k";a.textContent=k;
+    var b=document.createElement("span");b.className="v "+(cls||"");b.textContent=v;
+    d.appendChild(a);d.appendChild(b);checksEl.appendChild(d);
+  }
+  function verdict(good,msg){verdictEl.style.display="block";verdictEl.className=good?"good":"bad";verdictEl.textContent=msg;}
+
+  var ua=navigator.userAgent||"";
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  var gum=!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia);
+  var iOS=/iPad|iPhone|iPod/.test(ua)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+
+  row("Secure connection",window.isSecureContext?"yes":"NO — must be https",window.isSecureContext?"ok":"bad");
+  row("Speech API",SR?"present":"MISSING",SR?"ok":"bad");
+  row("Microphone API",gum?"present":"MISSING",gum?"ok":"bad");
+
+  var blocker="";
+  if(/FBAN|FBAV|Instagram|LinkedInApp|Line\/|Twitter|Snapchat/i.test(ua))
+    blocker="You opened this from inside another app (Facebook, Instagram or similar). Voice input does not work there. Open the page in Chrome or Safari.";
+  else if(iOS&&/CriOS|FxiOS|EdgiOS|OPiOS/i.test(ua))
+    blocker="On iPhone and iPad, voice input only works in Safari. Open this page in Safari.";
+  else if(/Firefox\//.test(ua))
+    blocker="Firefox does not support voice input. Use Chrome, Edge or Safari.";
+  else if(/Android/.test(ua)&&/; wv\)/.test(ua))
+    blocker="This is an embedded browser. Open the page in Chrome.";
+  row("Browser suitable",blocker?"NO":"yes",blocker?"bad":"ok");
+
+  if(navigator.brave&&typeof navigator.brave.isBrave==="function"){
+    navigator.brave.isBrave().then(function(b){
+      row("Brave browser",b?"YES — Brave blocks the speech service":"no",b?"bad":"ok");
+      if(b)verdict(false,"Brave blocks the speech service. Use Chrome, Edge or Safari.");
+    }).catch(function(){});
+  }
+  if(navigator.permissions&&navigator.permissions.query){
+    navigator.permissions.query({name:"microphone"}).then(function(p){
+      row("Mic permission",p.state,p.state==="granted"?"ok":p.state==="denied"?"bad":"warn");
+      if(p.state==="denied")log("Permission DENIED. Tap the padlock in the address bar, set microphone to Allow, then reload.");
+    }).catch(function(){row("Mic permission","could not check","warn");});
+  }else{row("Mic permission","cannot be checked in this browser","warn");}
+  row("Device",ua);
+
+  if(blocker)verdict(false,blocker);
+  else if(!window.isSecureContext)verdict(false,"This page must be loaded over https for voice input to work.");
+  else if(!SR||!gum)verdict(false,"This browser cannot do voice input. Try Chrome, Edge or Safari.");
+
+  goBtn.onclick=async function(){
+    logEl.textContent="";heardEl.textContent="listening…";base="";
+    if(!SR){log("FAIL: no speech API in this browser.");return;}
+    log("Requesting microphone permission…");
+    try{
+      var stream=await navigator.mediaDevices.getUserMedia({audio:true});
+      log("Permission GRANTED. Audio tracks: "+stream.getAudioTracks().length);
+      stream.getTracks().forEach(function(t){t.stop();});
+    }catch(err){
+      log("FAIL at microphone access: "+err.name+" — "+err.message);
+      verdict(false,"The browser refused microphone access. Tap the padlock in the address bar, allow the microphone, then reload.");
+      return;
+    }
+    rec=new SR();rec.continuous=true;rec.interimResults=true;rec.lang="en-AU";
+    rec.onstart=function(){log("listening — speak now");};
+    rec.onresult=function(e){
+      var fin="",int="";
+      for(var i=e.resultIndex;i<e.results.length;i++){
+        var t=e.results[i][0].transcript;
+        if(e.results[i].isFinal)fin+=t;else int+=t;
+      }
+      if(fin){base=(base+" "+fin).trim();log("heard: "+fin.trim());}
+      heardEl.textContent=(base+" "+int).trim()||"…";
+      if(base)verdict(true,"Voice input is working on this device and browser.");
+    };
+    rec.onerror=function(e){
+      log("ERROR: "+e.error);
+      var h={"not-allowed":"Mic blocked. Padlock in the address bar > allow microphone > reload.",
+             "service-not-allowed":"The browser is blocking the speech service. Use Chrome, Edge or Safari.",
+             "audio-capture":"No microphone detected.",
+             "network":"Cannot reach the speech service — check your connection.",
+             "no-speech":"Nothing heard. Check the right microphone is selected."};
+      if(h[e.error]){log("  > "+h[e.error]);verdict(false,h[e.error]);}
+      if(e.error!=="no-speech"){want=false;goBtn.style.display="";stopBtn.style.display="none";}
+    };
+    rec.onend=function(){
+      if(want){try{rec.start();return;}catch(err){log("restart failed: "+err.message);}}
+      goBtn.style.display="";stopBtn.style.display="none";
+    };
+    want=true;
+    try{rec.start();goBtn.style.display="none";stopBtn.style.display="";}
+    catch(err){log("FAIL at start: "+err.name+" — "+err.message);want=false;}
+  };
+  stopBtn.onclick=function(){
+    want=false;if(rec){try{rec.stop();}catch(e){}}
+    log("stopped");goBtn.style.display="";stopBtn.style.display="none";
+  };
+})();
+</script>
+</body>
+</html>
