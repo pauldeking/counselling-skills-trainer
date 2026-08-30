@@ -722,24 +722,168 @@ async function togHint(){
   }catch(e){hb.textContent='Try something like: "'+s.learn.phrases[0]+'" — adapt it to what they just said.';}
 }
 
-// ─── SPEECH ───────────────────────────────────────────────────────────────────
-function togMic(){
-  if(!('webkitSpeechRecognition' in window)&&!('SpeechRecognition' in window)){
-    alert('Speech recognition is not supported in this browser. Try Chrome.');return;
+// ─── SPEECH TO TEXT ───────────────────────────────────────────────────────────
+// The Web Speech API is present-but-broken on several common combinations, so
+// object detection alone is not enough. We check capability properly, hide the
+// button where it cannot work, and give a plain-English reason when it fails.
+
+let speechOK = null;      // null = not yet checked
+let speechWhy = '';
+let micWanted = false;    // user intends to keep listening (survives silence timeouts)
+let micBase = '';         // text already in the box before dictation started
+
+function detectSpeech(){
+  const ua = navigator.userAgent || '';
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if(!window.isSecureContext)
+    return {ok:false, why:'Voice input needs a secure (https) connection.'};
+  if(!SR)
+    return {ok:false, why:'This browser does not support voice input. Chrome, Edge or Safari do.'};
+  if(!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia))
+    return {ok:false, why:'This browser will not give the page microphone access.'};
+
+  // In-app browsers (opened from Facebook, Instagram, LinkedIn, etc.) expose the
+  // API but the speech service does not work inside their webview.
+  if(/FBAN|FBAV|Instagram|LinkedInApp|Line\/|Twitter|Snapchat/i.test(ua))
+    return {ok:false, why:'Voice input does not work inside in-app browsers. Open this page in Chrome or Safari.'};
+
+  const iOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+  // On iOS every browser is a Safari webview underneath, but only real Safari
+  // wires up the speech service.
+  if(iOS && /CriOS|FxiOS|EdgiOS|OPiOS|mercury/i.test(ua))
+    return {ok:false, why:'On iPhone and iPad, voice input only works in Safari.'};
+
+  // Desktop Firefox has never shipped this behind a default-on flag.
+  if(/Firefox\//.test(ua) && !/Seamonkey/.test(ua))
+    return {ok:false, why:'Firefox does not support voice input. Chrome, Edge or Safari do.'};
+
+  // Android WebView (an app embedding a browser) rather than Chrome proper.
+  if(/Android/.test(ua) && /; wv\)/.test(ua))
+    return {ok:false, why:'Voice input does not work in this embedded browser. Open the page in Chrome.'};
+
+  return {ok:true, why:''};
+}
+
+async function initSpeech(){
+  const d = detectSpeech();
+  speechOK = d.ok; speechWhy = d.why;
+
+  // Brave deliberately blocks the Google speech endpoint, so the API appears to
+  // work and then fails at runtime. It has to be asked directly.
+  if(speechOK && navigator.brave && typeof navigator.brave.isBrave === 'function'){
+    try{
+      if(await navigator.brave.isBrave()){
+        speechOK=false;
+        speechWhy='Brave blocks the speech service. Use Chrome, Edge or Safari for voice input.';
+      }
+    }catch(e){}
   }
-  if(listening){stopMic();return;}
+  applySpeechUI();
+}
+
+function applySpeechUI(){
+  const btn=document.getElementById('mic-btn');
+  const hint=document.getElementById('mic-hint');
+  if(!btn)return;
+  if(speechOK){
+    btn.style.display='';
+    if(hint)hint.textContent='';
+  }else{
+    btn.style.display='none';           // don't show what cannot work
+    if(hint)hint.textContent=speechWhy; // but say why, quietly
+  }
+}
+
+const MIC_ERRORS={
+  'not-allowed':'Microphone blocked. Tap the padlock in the address bar, allow the microphone, then reload.',
+  'service-not-allowed':'This browser is blocking the speech service. Try Chrome, Edge or Safari.',
+  'audio-capture':'No microphone found. Check one is connected and selected.',
+  'network':'Could not reach the speech service. Check your connection.',
+  'no-speech':'Nothing heard — try speaking a little closer to the microphone.',
+  'aborted':''
+};
+
+async function togMic(){
+  if(speechOK===null){await initSpeech();}
+  if(!speechOK){setMicStatus(speechWhy);return;}
+  if(micWanted){stopMic();return;}
+
+  setMicStatus('Checking microphone...');
+  // Ask for permission explicitly first, so a refusal is reported clearly rather
+  // than surfacing as a silent recogniser failure.
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    stream.getTracks().forEach(t=>t.stop());
+  }catch(err){
+    setMicStatus(err&&err.name==='NotAllowedError'
+      ? MIC_ERRORS['not-allowed']
+      : 'Could not access the microphone ('+((err&&err.name)||'unknown')+').');
+    return;
+  }
+
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   recognition=new SR();
   recognition.lang='en-AU';
   recognition.interimResults=true;
-  recognition.continuous=false;
-  recognition.onstart=()=>{listening=true;document.getElementById('mic-btn').classList.add('listening');document.getElementById('mic-status').textContent='🔴 Listening...';};
-  recognition.onresult=e=>{const t=Array.from(e.results).map(r=>r[0].transcript).join('');document.getElementById('ta').value=t;};
-  recognition.onend=()=>stopMic();
-  recognition.onerror=()=>stopMic();
-  recognition.start();
+  recognition.continuous=true;
+
+  const ta=document.getElementById('ta');
+  micBase=ta.value.trim();   // keep anything already typed
+
+  recognition.onstart=()=>{
+    listening=true;
+    document.getElementById('mic-btn').classList.add('listening');
+    setMicStatus('🔴 Listening — tap the mic again to stop');
+  };
+  recognition.onresult=e=>{
+    let finals='',interim='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const t=e.results[i][0].transcript;
+      if(e.results[i].isFinal)finals+=t; else interim+=t;
+    }
+    if(finals)micBase=(micBase+' '+finals).replace(/\s+/g,' ').trim();
+    ta.value=(micBase+' '+interim).replace(/\s+/g,' ').trim();
+  };
+  recognition.onerror=e=>{
+    const msg=MIC_ERRORS[e.error];
+    if(msg!==undefined&&msg!=='')setMicStatus(msg);
+    if(e.error!=='no-speech')micWanted=false;
+  };
+  recognition.onend=()=>{
+    // Recognisers stop themselves after a pause; restart while the user still
+    // wants to dictate so a thinking pause does not end the recording.
+    if(micWanted){
+      try{recognition.start();return;}catch(err){}
+    }
+    listening=false;
+    const b=document.getElementById('mic-btn');
+    if(b)b.classList.remove('listening');
+    setMicStatus('');
+  };
+
+  micWanted=true;
+  try{
+    recognition.start();
+  }catch(err){
+    micWanted=false;
+    setMicStatus('Could not start voice input. Try reloading the page.');
+  }
 }
-function stopMic(){listening=false;if(recognition)recognition.stop();document.getElementById('mic-btn').classList.remove('listening');document.getElementById('mic-status').textContent='';}
+
+function stopMic(){
+  micWanted=false;
+  listening=false;
+  if(recognition){try{recognition.stop();}catch(e){}}
+  const b=document.getElementById('mic-btn');
+  if(b)b.classList.remove('listening');
+  setMicStatus('');
+}
+
+function setMicStatus(msg){
+  const el=document.getElementById('mic-status');
+  if(el)el.textContent=msg||'';
+}
 
 // ─── COMPLETION ───────────────────────────────────────────────────────────────
 const GIBBS_STEPS=[
@@ -1056,3 +1200,4 @@ function knowledgePct(k){
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 renderHome();
+initSpeech();
