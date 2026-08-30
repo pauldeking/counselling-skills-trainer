@@ -733,44 +733,42 @@ async function togHint(){
 }
 
 // ─── SPEECH TO TEXT ───────────────────────────────────────────────────────────
-// The Web Speech API is present-but-broken on several common combinations, so
-// object detection alone is not enough. We check capability properly, hide the
-// button where it cannot work, and give a plain-English reason when it fails.
+// Two things make the Web Speech API repeat text on Android:
+//   1. Reusing a recogniser across restarts — its results array does not
+//      reliably clear, so previously finalised words come back at index 0.
+//   2. Chrome re-delivering results already marked final.
+// A fresh recogniser per run handles the first, index-keyed slots handle the
+// second, and an overlap guard on commit catches anything that slips past both.
 
-let speechOK = null;      // null = not yet checked
+let speechOK = null;
 let speechWhy = '';
-let micWanted = false;    // user intends to keep listening (survives silence drop-outs)
-let micBase = '';         // committed text: anything typed before, plus finalised speech
-let micInterim = '';      // words heard but not yet finalised
-let micFinals = [];       // finalised results of the current run, keyed by index
-let micRunId = 0;         // identifies the live recogniser; stale ones are ignored
-let micRestartPending = false;
+let micWanted = false;
+let micBase = '';         // committed text (typed + everything from finished runs)
+let micFinals = [];       // finals of the CURRENT run only, keyed by result index
+let micInterim = '';
+let micRunId = 0;
 let micRestarts = 0;
+let micRestartPending = false;
+let micDebug = [];        // last few events, surfaced by the diagnostic page
 
 function detectSpeech(){
   const ua = navigator.userAgent || '';
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-
   if(!window.isSecureContext)
     return {ok:false, why:'Voice input needs a secure (https) connection.'};
   if(!SR)
     return {ok:false, why:'This browser does not support voice input. Chrome, Edge or Safari do.'};
   if(!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia))
     return {ok:false, why:'This browser will not give the page microphone access.'};
-
   if(/FBAN|FBAV|Instagram|LinkedInApp|Line\/|Twitter|Snapchat/i.test(ua))
     return {ok:false, why:'Voice input does not work inside in-app browsers. Open this page in Chrome or Safari.'};
-
   const iOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
   if(iOS && /CriOS|FxiOS|EdgiOS|OPiOS|mercury/i.test(ua))
     return {ok:false, why:'On iPhone and iPad, voice input only works in Safari.'};
-
   if(/Firefox\//.test(ua) && !/Seamonkey/.test(ua))
     return {ok:false, why:'Firefox does not support voice input. Chrome, Edge or Safari do.'};
-
   if(/Android/.test(ua) && /; wv\)/.test(ua))
     return {ok:false, why:'Voice input does not work in this embedded browser. Open the page in Chrome.'};
-
   return {ok:true, why:''};
 }
 
@@ -779,8 +777,6 @@ function isAndroid(){return /Android/.test(navigator.userAgent||'');}
 async function initSpeech(){
   const d = detectSpeech();
   speechOK = d.ok; speechWhy = d.why;
-
-  // Brave blocks the speech endpoint, so the API looks fine then fails at runtime.
   if(speechOK && navigator.brave && typeof navigator.brave.isBrave === 'function'){
     try{
       if(await navigator.brave.isBrave()){
@@ -798,8 +794,6 @@ function applySpeechUI(){
   if(!btn)return;
   if(speechOK){
     btn.style.display='';
-    // Android's own keyboard dictation is a native service and handles pauses
-    // far better than anything the browser API allows, so point people at it.
     if(hint)hint.textContent=isAndroid()
       ? 'Tip: your keyboard\u2019s own microphone key usually dictates better than this button.'
       : '';
@@ -818,22 +812,132 @@ const MIC_ERRORS={
   'aborted':''
 };
 
-// Chrome re-delivers already-finalised results with resultIndex pointing back
-// at an earlier slot. Keying finals by index makes re-delivery idempotent, which
-// is what stops the same words being appended over and over.
-function micText(){
-  return (micBase+' '+micFinals.join(' ')+' '+micInterim).replace(/\s+/g,' ').trim();
+function micLog(msg){
+  micDebug.push(new Date().toLocaleTimeString()+' '+msg);
+  if(micDebug.length>60)micDebug.shift();
 }
-// Called when a recogniser ends: its indices reset to 0 on restart, so its
-// finals are folded into the committed text before the array is cleared.
-function commitInterim(){
-  micBase=micText();
-  micFinals=[];
-  micInterim='';
+
+// Joins two pieces of transcript, dropping any run of words at the start of
+// `add` that already ends `base`. Compared word-by-word rather than by
+// characters so ordinary word endings cannot trigger a false trim. This runs at
+// assembly time, because a replayed result shows up while the run is live —
+// long before anything is committed.
+function joinDedupe(base,add){
+  base=(base||'').replace(/\s+/g,' ').trim();
+  add=(add||'').replace(/\s+/g,' ').trim();
+  if(!add)return base;
+  if(!base)return add;
+  const A=base.split(' '), B=add.split(' ');
+  const norm=w=>w.toLowerCase().replace(/[.,!?;:'"]/g,'');
+  for(let n=Math.min(A.length,B.length); n>=1; n--){
+    let same=true;
+    for(let k=0;k<n;k++){
+      if(norm(A[A.length-n+k])!==norm(B[k])){same=false;break;}
+    }
+    // 3+ words is a real repeat; fewer only counts if it is all of `add`.
+    if(same&&(n>=3||n===B.length)){
+      if(n===B.length)return base;
+      micLog('trimmed '+n+' replayed words');
+      return (base+' '+B.slice(n).join(' ')).trim();
+    }
+  }
+  return (base+' '+add).trim();
+}
+
+function appendCommitted(text){micBase=joinDedupe(micBase,text);}
+
+function micText(){
+  const run=(micFinals.join(' ')+' '+micInterim).replace(/\s+/g,' ').trim();
+  return joinDedupe(micBase,run);
 }
 function paintMic(){
   const ta=document.getElementById('ta');
   if(ta)ta.value=micText();
+}
+// Fold the finished run into the committed text; its indices are about to reset.
+function commitRun(){
+  micBase=micText();
+  micFinals=[];
+  micInterim='';
+}
+function commitInterim(){commitRun();}   // kept for older call sites
+
+function buildRecogniser(rid){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  const r=new SR();
+  r.lang='en-AU';
+  r.interimResults=true;
+  // Android Chrome does not honour continuous properly; a fresh recogniser per
+  // utterance is more predictable than fighting it.
+  r.continuous=!isAndroid();
+
+  r.onstart=()=>{
+    if(rid!==micRunId)return;
+    micRestartPending=false;
+    listening=true;
+    const b=document.getElementById('mic-btn');
+    if(b)b.classList.add('listening');
+    setMicStatus('\u{1F534} Listening \u2014 tap the mic again to stop');
+    micLog('start (run '+rid+')');
+  };
+
+  r.onresult=e=>{
+    if(rid!==micRunId)return;
+    let interim='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const t=e.results[i][0].transcript;
+      if(e.results[i].isFinal)micFinals[i]=t;   // slot assign, never append
+      else interim+=t;
+    }
+    micInterim=interim;
+    micLog('result idx='+e.resultIndex+' len='+e.results.length+' finals='+micFinals.filter(Boolean).length);
+    paintMic();
+  };
+
+  r.onerror=e=>{
+    if(rid!==micRunId)return;
+    micLog('error '+e.error);
+    const msg=MIC_ERRORS[e.error];
+    if(msg)setMicStatus(msg);
+    if(e.error!=='no-speech'&&e.error!=='aborted')micWanted=false;
+  };
+
+  r.onend=()=>{
+    if(rid!==micRunId)return;
+    commitRun();
+    paintMic();
+    micLog('end; committed len='+micBase.length);
+    if(!micWanted){hardStopMic('');return;}
+    if(micRestartPending)return;
+    micRestartPending=true;
+    micRestarts++;
+    if(micRestarts>300){hardStopMic('Voice input stopped. Tap the mic to carry on.');return;}
+    // A brand new recogniser each time, so no stale results can come back.
+    setTimeout(()=>{
+      if(!micWanted||rid!==micRunId){micRestartPending=false;return;}
+      startRun();
+    },250);
+  };
+
+  return r;
+}
+
+function startRun(){
+  const rid=++micRunId;
+  if(recognition){try{recognition.onend=null;recognition.onresult=null;recognition.onerror=null;recognition.abort();}catch(e){}}
+  micFinals=[];
+  micInterim='';
+  recognition=buildRecogniser(rid);
+  try{
+    recognition.start();
+  }catch(err){
+    micLog('start threw: '+err.name);
+    setTimeout(()=>{
+      if(!micWanted||rid!==micRunId)return;
+      try{recognition.start();}
+      catch(e2){micRestartPending=false;hardStopMic('Voice input stopped. Tap the mic to carry on.');}
+    },400);
+  }
 }
 
 async function togMic(){
@@ -852,92 +956,18 @@ async function togMic(){
     return;
   }
 
-  // Tear down anything still running, so two recognisers can never both write.
-  if(recognition){try{recognition.onend=null;recognition.onresult=null;recognition.abort();}catch(e){}}
-  const rid=++micRunId;
-  micRestartPending=false;
-
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  recognition=new SR();
-  recognition.lang='en-AU';
-  recognition.interimResults=true;
-  recognition.continuous=true;
-
   const ta=document.getElementById('ta');
-  micBase=(ta?ta.value:'').trim();   // keep whatever is already in the box
-  micFinals=[];
-  micInterim='';
+  micBase=(ta?ta.value:'').trim();
   micRestarts=0;
-
-  recognition.onstart=()=>{
-    if(rid!==micRunId)return;
-    micRestartPending=false;
-    listening=true;
-    const b=document.getElementById('mic-btn');
-    if(b)b.classList.add('listening');
-    setMicStatus('\u{1F534} Listening \u2014 tap the mic again to stop');
-  };
-
-  recognition.onresult=e=>{
-    if(rid!==micRunId)return;          // a stale recogniser must not write text
-    let interim='';
-    for(let i=e.resultIndex;i<e.results.length;i++){
-      const t=e.results[i][0].transcript;
-      if(e.results[i].isFinal)micFinals[i]=t;   // slot assignment, not append
-      else interim+=t;
-    }
-    micInterim=interim;
-    paintMic();
-  };
-
-  recognition.onerror=e=>{
-    if(rid!==micRunId)return;
-    const msg=MIC_ERRORS[e.error];
-    if(msg)setMicStatus(msg);
-    // A pause producing no-speech is normal on Android; keep going.
-    if(e.error!=='no-speech'&&e.error!=='aborted')micWanted=false;
-  };
-
-  recognition.onend=()=>{
-    if(rid!==micRunId)return;
-    // Android Chrome ends the recogniser after a short pause regardless of
-    // continuous. Its finals and interim are committed before indices reset.
-    commitInterim();
-    paintMic();
-    if(micWanted){
-      if(micRestartPending)return;    // only ever one restart in flight
-      micRestartPending=true;
-      micRestarts++;
-      if(micRestarts>200){hardStopMic('Voice input stopped. Tap the mic to carry on.');return;}
-      // start() throws if the recogniser has not fully released yet, so retry
-      // after a beat rather than giving up.
-      setTimeout(()=>{
-        if(!micWanted||rid!==micRunId)return;
-        try{recognition.start();}
-        catch(err){
-          setTimeout(()=>{
-            if(!micWanted||rid!==micRunId)return;
-            try{recognition.start();}
-            catch(e2){micRestartPending=false;hardStopMic('Voice input stopped. Tap the mic to carry on.');}
-          },400);
-        }
-      },200);
-      return;
-    }
-    hardStopMic('');
-  };
-
+  micRestartPending=false;
+  micDebug=[];
   micWanted=true;
-  try{
-    recognition.start();
-  }catch(err){
-    micWanted=false;
-    setMicStatus('Could not start voice input. Try reloading the page.');
-  }
+  startRun();
 }
 
 function hardStopMic(msg){
   micWanted=false;
+  micRestartPending=false;
   listening=false;
   const b=document.getElementById('mic-btn');
   if(b)b.classList.remove('listening');
@@ -947,10 +977,10 @@ function hardStopMic(msg){
 function stopMic(){
   micWanted=false;
   micRestartPending=false;
-  micRunId++;                 // orphan the current recogniser
-  commitInterim();
+  commitRun();
   paintMic();
-  if(recognition){try{recognition.stop();}catch(e){}}
+  micRunId++;
+  if(recognition){try{recognition.onend=null;recognition.onresult=null;recognition.stop();}catch(e){}}
   hardStopMic('');
 }
 
