@@ -742,6 +742,9 @@ let speechWhy = '';
 let micWanted = false;    // user intends to keep listening (survives silence drop-outs)
 let micBase = '';         // committed text: anything typed before, plus finalised speech
 let micInterim = '';      // words heard but not yet finalised
+let micFinals = [];       // finalised results of the current run, keyed by index
+let micRunId = 0;         // identifies the live recogniser; stale ones are ignored
+let micRestartPending = false;
 let micRestarts = 0;
 
 function detectSpeech(){
@@ -815,15 +818,22 @@ const MIC_ERRORS={
   'aborted':''
 };
 
+// Chrome re-delivers already-finalised results with resultIndex pointing back
+// at an earlier slot. Keying finals by index makes re-delivery idempotent, which
+// is what stops the same words being appended over and over.
+function micText(){
+  return (micBase+' '+micFinals.join(' ')+' '+micInterim).replace(/\s+/g,' ').trim();
+}
+// Called when a recogniser ends: its indices reset to 0 on restart, so its
+// finals are folded into the committed text before the array is cleared.
 function commitInterim(){
-  if(micInterim){
-    micBase=(micBase+' '+micInterim).replace(/\s+/g,' ').trim();
-    micInterim='';
-  }
+  micBase=micText();
+  micFinals=[];
+  micInterim='';
 }
 function paintMic(){
   const ta=document.getElementById('ta');
-  if(ta)ta.value=(micBase+' '+micInterim).replace(/\s+/g,' ').trim();
+  if(ta)ta.value=micText();
 }
 
 async function togMic(){
@@ -842,6 +852,11 @@ async function togMic(){
     return;
   }
 
+  // Tear down anything still running, so two recognisers can never both write.
+  if(recognition){try{recognition.onend=null;recognition.onresult=null;recognition.abort();}catch(e){}}
+  const rid=++micRunId;
+  micRestartPending=false;
+
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   recognition=new SR();
   recognition.lang='en-AU';
@@ -850,10 +865,13 @@ async function togMic(){
 
   const ta=document.getElementById('ta');
   micBase=(ta?ta.value:'').trim();   // keep whatever is already in the box
+  micFinals=[];
   micInterim='';
   micRestarts=0;
 
   recognition.onstart=()=>{
+    if(rid!==micRunId)return;
+    micRestartPending=false;
     listening=true;
     const b=document.getElementById('mic-btn');
     if(b)b.classList.add('listening');
@@ -861,17 +879,19 @@ async function togMic(){
   };
 
   recognition.onresult=e=>{
-    let finals='',interim='';
+    if(rid!==micRunId)return;          // a stale recogniser must not write text
+    let interim='';
     for(let i=e.resultIndex;i<e.results.length;i++){
       const t=e.results[i][0].transcript;
-      if(e.results[i].isFinal)finals+=t; else interim+=t;
+      if(e.results[i].isFinal)micFinals[i]=t;   // slot assignment, not append
+      else interim+=t;
     }
-    if(finals)micBase=(micBase+' '+finals).replace(/\s+/g,' ').trim();
     micInterim=interim;
     paintMic();
   };
 
   recognition.onerror=e=>{
+    if(rid!==micRunId)return;
     const msg=MIC_ERRORS[e.error];
     if(msg)setMicStatus(msg);
     // A pause producing no-speech is normal on Android; keep going.
@@ -879,23 +899,26 @@ async function togMic(){
   };
 
   recognition.onend=()=>{
+    if(rid!==micRunId)return;
     // Android Chrome ends the recogniser after a short pause regardless of
-    // continuous, so anything heard but unfinalised is committed before restart.
+    // continuous. Its finals and interim are committed before indices reset.
     commitInterim();
     paintMic();
     if(micWanted){
+      if(micRestartPending)return;    // only ever one restart in flight
+      micRestartPending=true;
       micRestarts++;
       if(micRestarts>200){hardStopMic('Voice input stopped. Tap the mic to carry on.');return;}
       // start() throws if the recogniser has not fully released yet, so retry
       // after a beat rather than giving up.
       setTimeout(()=>{
-        if(!micWanted)return;
+        if(!micWanted||rid!==micRunId)return;
         try{recognition.start();}
         catch(err){
           setTimeout(()=>{
-            if(!micWanted)return;
+            if(!micWanted||rid!==micRunId)return;
             try{recognition.start();}
-            catch(e2){hardStopMic('Voice input stopped. Tap the mic to carry on.');}
+            catch(e2){micRestartPending=false;hardStopMic('Voice input stopped. Tap the mic to carry on.');}
           },400);
         }
       },200);
@@ -923,6 +946,8 @@ function hardStopMic(msg){
 
 function stopMic(){
   micWanted=false;
+  micRestartPending=false;
+  micRunId++;                 // orphan the current recogniser
   commitInterim();
   paintMic();
   if(recognition){try{recognition.stop();}catch(e){}}
