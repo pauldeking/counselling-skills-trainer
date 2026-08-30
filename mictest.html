@@ -104,14 +104,15 @@
       return;
     }
     rec=new SR();rec.continuous=true;rec.interimResults=true;rec.lang="en-AU";
-    rec.onstart=function(){log("listening — speak now");};
+    rec.onstart=function(){log("START (new recogniser, continuous="+rec.continuous+")");};
     rec.onresult=function(e){
       var fin="",int="";
       for(var i=e.resultIndex;i<e.results.length;i++){
         var t=e.results[i][0].transcript;
         if(e.results[i].isFinal)fin+=t;else int+=t;
       }
-      if(fin){base=(base+" "+fin).trim();log("heard: "+fin.trim());}
+      log("event idx="+e.resultIndex+" results="+e.results.length+" final="+(fin?"yes":"no"));
+      if(fin){base=(base+" "+fin).trim();log("  heard: "+fin.trim());}
       heardEl.textContent=(base+" "+int).trim()||"…";
       if(base)verdict(true,"Voice input is working on this device and browser.");
     };
@@ -126,6 +127,7 @@
       if(e.error!=="no-speech"){want=false;goBtn.style.display="";stopBtn.style.display="none";}
     };
     rec.onend=function(){
+      log("END — committed so far: "+base.length+" chars");
       if(want){try{rec.start();return;}catch(err){log("restart failed: "+err.message);}}
       goBtn.style.display="";stopBtn.style.display="none";
     };
