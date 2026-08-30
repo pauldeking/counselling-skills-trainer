@@ -576,7 +576,7 @@ async function startRP(){
   const s=findScenario(pendingId);
   if(!s)return;
   const seed=buildSeed(s.id);
-  sess={scenario:s,level:sess.level,hist:[],trn:0,pts:0,lastC:s.opener,busy:false,lastFB:'',seed:seed,sysFull:s.sys+seedToPrompt(seed)};
+  sess={scenario:s,level:sess.level,hist:[],trn:0,pts:0,lastC:s.opener,busy:false,lastFB:'',finished:false,seed:seed,sysFull:s.sys+seedToPrompt(seed)};
 
   document.getElementById('rp-title').textContent=s.title+(seed.n>0?' · Take '+(seed.n+1):'');
   document.getElementById('rp-pill').textContent=s.skill;
@@ -692,8 +692,18 @@ async function send(){
     sess.lastC=cr;
     addThem(cr);
     if(sess.trn>=s.turns){
+      // The last turn's feedback matters as much as any other, so the session
+      // waits on a button here rather than whisking the student to the summary.
       document.getElementById('send-btn').disabled=true;
-      setTimeout(()=>showCompletion(),400);
+      document.getElementById('tbar').textContent='Session complete — read the feedback below, then finish';
+      const fin=document.createElement('button');
+      fin.className='quiz-cta';
+      fin.id='finish-btn';
+      fin.textContent='Finish and see your summary →';
+      fin.onclick=()=>{ if(!sess.finished){sess.finished=true;showCompletion();} };
+      document.getElementById('fb-area').appendChild(fin);
+      document.getElementById('chat-log').scrollTop=document.getElementById('chat-log').scrollHeight;
+      sess.busy=false;
     } else {
       updateT();
       document.getElementById('send-btn').disabled=false;
