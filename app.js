@@ -386,17 +386,61 @@ function getModalityType(scenarioId){
 }
 function getModality(id){return MODALITIES.find(m=>m.id===id)||MODALITIES[0];}
 
+// ─── SESSION VARIATION ────────────────────────────────────────────────────────
+// These vary how the client presents on the day. They deliberately do NOT touch
+// the behavioural rules in each scenario's sys prompt, so the target skill still
+// gets tested the same way on every run.
+const VAR_MOOD=[
+  "Today you are flat and tired. Your energy is low and your answers come slowly.",
+  "Today you are wound up and talking quickly, jumping between things.",
+  "Today you are deflecting with humour and brushing things off before they land.",
+  "Today you are quiet and thoughtful, leaving pauses before you answer.",
+  "Today you are irritable and a little short, though not hostile.",
+  "Today the feelings are close to the surface and your voice keeps catching."
+];
+const VAR_TRIGGER=[
+  "Something happened at work this week that brought it to a head.",
+  "A comment from a family member has been going round and round in your head.",
+  "You slept badly and everything feels heavier than it did last week.",
+  "Nothing specific has happened — it has just been slowly building.",
+  "A friend told you that you should really talk to someone, so here you are.",
+  "A date or anniversary has come round again and stirred it all up."
+];
+const VAR_GUARD=[
+  "You start fairly guarded and need to feel met before you open up.",
+  "You are more open than usual today and share readily if the student is warm.",
+  "You test the student early with something slightly deflecting before you decide whether to trust them."
+];
+
+function buildSeed(scenarioId){
+  const n=(state.attempts&&state.attempts[scenarioId])||0;
+  return {
+    n:n,
+    mood:VAR_MOOD[n%VAR_MOOD.length],
+    trigger:VAR_TRIGGER[(n+Math.floor(n/VAR_TRIGGER.length))%VAR_TRIGGER.length],
+    guard:VAR_GUARD[n%VAR_GUARD.length]
+  };
+}
+function seedToPrompt(seed){
+  return "\n\nHOW YOU ARE PRESENTING TODAY (colour only — your core situation and all the rules above still apply exactly):\n- "+seed.mood+"\n- "+seed.trigger+"\n- "+seed.guard;
+}
+function bumpAttempt(scenarioId){
+  if(!state.attempts)state.attempts={};
+  state.attempts[scenarioId]=((state.attempts[scenarioId])||0)+1;
+  saveState();
+}
+
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let state = loadState();
 function loadState(){
-  const blank = {pts:0,streak:0,done:[],skills:{},currentModality:null,notes:[],journal:[],skillHistory:{}};
+  const blank = {pts:0,streak:0,done:[],skills:{},currentModality:null,notes:[],journal:[],skillHistory:{},attempts:{}};
   Object.keys(SN).forEach(k=>blank.skills[k]=0);
   try{
     const s=JSON.parse(localStorage.getItem('cst_state_v2'));
     if(s){
       s.skills=s.skills||{};
       Object.keys(SN).forEach(k=>{if(typeof s.skills[k]!=='number')s.skills[k]=0;});
-      s.done=s.done||[];s.notes=s.notes||[];s.journal=s.journal||[];s.skillHistory=s.skillHistory||{};
+      s.done=s.done||[];s.notes=s.notes||[];s.journal=s.journal||[];s.skillHistory=s.skillHistory||{};s.attempts=s.attempts||{};
       return s;
     }
     // one-time migration from the old single-track state
@@ -518,12 +562,13 @@ function pickLevel(l){
 }
 
 // ─── ROLEPLAY ─────────────────────────────────────────────────────────────────
-function startRP(){
+async function startRP(){
   const s=findScenario(pendingId);
   if(!s)return;
-  sess={scenario:s,level:sess.level,hist:[],trn:0,pts:0,lastC:s.opener,busy:false,lastFB:''};
+  const seed=buildSeed(s.id);
+  sess={scenario:s,level:sess.level,hist:[],trn:0,pts:0,lastC:s.opener,busy:false,lastFB:'',seed:seed,sysFull:s.sys+seedToPrompt(seed)};
 
-  document.getElementById('rp-title').textContent=s.title;
+  document.getElementById('rp-title').textContent=s.title+(seed.n>0?' · Take '+(seed.n+1):'');
   document.getElementById('rp-pill').textContent=s.skill;
   document.getElementById('rp-av').textContent=s.client.av;
   document.getElementById('rp-cname').textContent=s.client.name;
@@ -545,7 +590,32 @@ function startRP(){
   document.getElementById('ta').value='';
   document.getElementById('mic-status').textContent='';
   document.getElementById('send-btn').disabled=false;
-  addThem(s.opener);updateT();showScreen('rp');
+  updateT();showScreen('rp');
+
+  // First run uses the hand-written opener: instant, and pitched exactly at the
+  // target skill. Repeat runs get a fresh opening so the student cannot rehearse
+  // a memorised reply.
+  if(seed.n===0){addThem(s.opener);bumpAttempt(s.id);return;}
+
+  document.getElementById('send-btn').disabled=true;
+  document.getElementById('fb-area').innerHTML='<div class="loading">'+s.client.name+' is settling in...</div>';
+  let opener=s.opener;
+  try{
+    const gen=await api({model:'claude-sonnet-4-6',max_tokens:200,messages:[{role:'user',content:
+      'You are writing the opening line a counselling client says at the start of a practice roleplay.\n\n'+
+      'Client: '+s.client.name+'. Background: '+s.client.ctx+'\n'+
+      'The student is practising: '+s.skill+'\n'+
+      'The standard opening line is: "'+s.opener+'"\n\n'+
+      'Today this client presents like this:\n- '+seed.mood+'\n- '+seed.trigger+'\n- '+seed.guard+'\n\n'+
+      'Write a DIFFERENT opening line for the same client with the same underlying concern. It must still give the student a clear opportunity to practise '+s.skill+' — same difficulty, same emotional material, different words and different surface detail. 2-3 sentences, first person, natural spoken English. Output only the line itself, no quotation marks and no preamble.'}]});
+    const clean=(gen||'').trim().replace(/^["']|["']$/g,'');
+    if(clean.length>20)opener=clean;
+  }catch(e){/* fall back to the canonical opener */}
+  sess.lastC=opener;
+  document.getElementById('fb-area').innerHTML='';
+  addThem(opener);
+  document.getElementById('send-btn').disabled=false;
+  bumpAttempt(s.id);
 }
 
 function togLearn(){const b=document.getElementById('learn-body'),a=document.getElementById('learn-arr');const o=b.classList.toggle('open');a.classList.toggle('open',o);}
@@ -607,7 +677,7 @@ async function send(){
     for(const h of sess.hist){clientHist.push({role:'user',content:h.student});clientHist.push({role:'assistant',content:h.client});}
     clientHist.push({role:'user',content:txt});
     sess.hist.push({student:txt,client:'',rating:rating});
-    const cr=await api({model:'claude-sonnet-4-6',max_tokens:300,system:s.sys,messages:clientHist});
+    const cr=await api({model:'claude-sonnet-4-6',max_tokens:300,system:(sess.sysFull||s.sys),messages:clientHist});
     sess.hist[sess.hist.length-1].client=cr;
     sess.lastC=cr;
     addThem(cr);
