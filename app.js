@@ -907,7 +907,7 @@ function skillSource(k){
   return {name:SN[k],explain:s.learn.explain,ex:s.learn.ex};
 }
 
-async function genQuiz(skillKeys,n){
+async function genQuiz(skillKeys,n,avoid){
   const brief=skillKeys.map(k=>{
     const src=skillSource(k);
     return '- '+src.name+' (key: '+k+'): '+src.explain+' Example: '+src.ex;
@@ -922,38 +922,21 @@ async function genQuiz(skillKeys,n){
     '- "correct" is the 0-based index of the best response.\n'+
     '- "why" is exactly 4 short explanations, one per option in the same order, each under 25 words, saying plainly why that response does or does not demonstrate the skill. Write for someone new to counselling: no unexplained jargon.\n'+
     '- "skillKey" is the key of the skill being tested, exactly as given above.\n\n'+
+    ((avoid&&avoid.length)?('Do NOT reuse or lightly reword any of these client statements, which are already in this quiz:\n'+avoid.map(a=>'- '+a).join('\n')+'\n\n'):'')+
     'Respond with ONLY a JSON array, no preamble and no markdown fences:\n'+
     '[{"skillKey":"...","stem":"...","options":["...","...","...","..."],"correct":0,"why":["...","...","...","..."]}]';
 
-  const raw=await api({model:'claude-sonnet-4-6',max_tokens:3000,messages:[{role:'user',content:prompt}]});
+  const raw=await api({model:'claude-sonnet-4-6',max_tokens:Math.min(4000,600+n*420),messages:[{role:'user',content:prompt}]});
   const clean=raw.replace(/```json|```/g,'').trim();
   const start=clean.indexOf('['), end=clean.lastIndexOf(']');
   const parsed=JSON.parse(clean.slice(start,end+1));
-  return shuffleQuiz(parsed.filter(q=>
+  return parsed.filter(q=>
     q && typeof q.stem==='string' &&
     Array.isArray(q.options) && q.options.length===4 &&
     Array.isArray(q.why) && q.why.length===4 &&
     typeof q.correct==='number' && q.correct>=0 && q.correct<4 &&
     SN[q.skillKey]
-  ));
-}
-
-// The generating model has a strong bias toward writing the correct answer
-// first, so option order is randomised here rather than trusted from the model.
-// Options and their explanations move together and `correct` is remapped.
-function shuffleQuiz(qs){
-  return qs.map(q=>{
-    const idx=q.options.map((_,i)=>i);
-    for(let i=idx.length-1;i>0;i--){
-      const j=Math.floor(Math.random()*(i+1));
-      [idx[i],idx[j]]=[idx[j],idx[i]];
-    }
-    return Object.assign({},q,{
-      options:idx.map(i=>q.options[i]),
-      why:idx.map(i=>q.why[i]),
-      correct:idx.indexOf(q.correct)
-    });
-  });
+  );
 }
 
 function startScenarioQuiz(){
@@ -967,32 +950,74 @@ function startModalityQuiz(modId){
 }
 
 async function launchQuiz(skillKeys,n,origin,title){
-  quiz={qs:[],i:0,correct:0,answered:false,origin:origin,title:title,skills:skillKeys};
+  quiz={qs:[],i:0,correct:0,answered:false,origin:origin,title:title,skills:skillKeys,
+        total:n,requested:n,pending:null,restDone:false,restFailed:false,waiting:false};
   showScreen('quiz');
   document.getElementById('quiz-count').textContent='';
   document.getElementById('quiz-track-fill').style.width='0%';
-  document.getElementById('quiz-body').innerHTML='<div class="loading">Writing your questions...</div>';
+  document.getElementById('quiz-body').innerHTML='<div class="loading">Writing your first question...</div>';
+
+  const mine=quiz;   // guard against a stale run finishing after the user restarts
   try{
-    const qs=await genQuiz(skillKeys,n);
-    if(!qs.length)throw new Error('no questions');
-    quiz.qs=qs;
+    const first=await genQuiz(skillKeys,1);
+    if(mine!==quiz)return;
+    if(!first.length)throw new Error('no questions');
+    quiz.qs=first;
     renderQ();
   }catch(e){
-    const b=document.getElementById('quiz-body');
-    b.innerHTML='';
-    const p=document.createElement('div');p.className='loading';
-    p.textContent='Could not build the quiz just now — please try again in a moment.';
-    const again=document.createElement('button');again.className='quiz-cta';again.textContent='Try again';
-    again.onclick=()=>launchQuiz(skillKeys,n,origin,title);
-    b.appendChild(p);b.appendChild(again);
+    if(mine!==quiz)return;
+    quizFailed(()=>launchQuiz(skillKeys,n,origin,title));
+    return;
   }
+
+  // The rest are written while the student reads question one.
+  if(n>1){
+    const rest1=()=>genQuiz(skillKeys,n-1,quiz.qs.map(q=>q.stem));
+    quiz.pending=rest1().catch(()=>rest1())   // one retry; these failures are usually transient
+      .then(rest=>{
+        if(mine!==quiz)return;
+        quiz.qs=quiz.qs.concat(rest);
+        quiz.total=quiz.qs.length;      // settle on what actually arrived
+        quiz.restDone=true;
+        if(quiz.waiting)renderQ();      // they were sitting on the wait screen
+      })
+      .catch(()=>{
+        if(mine!==quiz)return;
+        quiz.restFailed=true;
+        quiz.total=quiz.qs.length;      // finish cleanly on what we have
+        if(quiz.waiting)finishQuiz();
+      });
+  }else{
+    quiz.restDone=true;
+  }
+}
+
+function quizFailed(retry){
+  const b=document.getElementById('quiz-body');
+  b.innerHTML='';
+  const p=document.createElement('div');p.className='loading';
+  p.textContent='Could not build the quiz just now — please try again in a moment.';
+  const again=document.createElement('button');again.className='quiz-cta';again.textContent='Try again';
+  again.onclick=retry;
+  b.appendChild(p);b.appendChild(again);
+}
+
+// Called when the student finishes a question before the rest have arrived.
+function awaitNextQ(){
+  quiz.waiting=true;
+  const b=document.getElementById('quiz-body');
+  b.innerHTML='';
+  const d=document.createElement('div');d.className='loading';
+  d.textContent='Just finishing the next question...';
+  b.appendChild(d);
 }
 
 function renderQ(){
   const q=quiz.qs[quiz.i];
   quiz.answered=false;
-  document.getElementById('quiz-count').textContent='Question '+(quiz.i+1)+' of '+quiz.qs.length;
-  document.getElementById('quiz-track-fill').style.width=Math.round(quiz.i/quiz.qs.length*100)+'%';
+  quiz.waiting=false;
+  document.getElementById('quiz-count').textContent='Question '+(quiz.i+1)+' of '+quiz.total;
+  document.getElementById('quiz-track-fill').style.width=Math.round(quiz.i/quiz.total*100)+'%';
 
   const b=document.getElementById('quiz-body');b.innerHTML='';
 
@@ -1038,8 +1063,12 @@ function answerQ(idx){
 
   const next=document.createElement('button');
   next.className='quiz-cta';
-  next.textContent=quiz.i<quiz.qs.length-1?'Next question →':'See results →';
-  next.onclick=()=>{ if(quiz.i<quiz.qs.length-1){quiz.i++;renderQ();} else finishQuiz(); };
+  next.textContent=quiz.i<quiz.total-1?'Next question →':'See results →';
+  next.onclick=()=>{
+    if(quiz.i>=quiz.total-1){finishQuiz();return;}
+    quiz.i++;
+    if(quiz.qs[quiz.i])renderQ(); else awaitNextQ();
+  };
   document.getElementById('quiz-body').appendChild(next);
 }
 
@@ -1053,6 +1082,7 @@ function recordKnowledge(k,right){
 
 function finishQuiz(){
   const total=quiz.qs.length, got=quiz.correct;
+  quiz.waiting=false;
   const pct=Math.round(got/total*100);
   const earned=got*5;
   state.pts+=earned;
@@ -1078,7 +1108,7 @@ function finishQuiz(){
   b.appendChild(res);b.appendChild(pts);b.appendChild(note);
 
   const again=document.createElement('button');again.className='quiz-cta';again.textContent='New set of questions';
-  again.onclick=()=>launchQuiz(quiz.skills,quiz.qs.length,quiz.origin,quiz.title);
+  again.onclick=()=>launchQuiz(quiz.skills,quiz.requested||quiz.qs.length,quiz.origin,quiz.title);
   const back=document.createElement('button');back.className='quiz-cta';back.textContent='Done';
   back.onclick=()=>exitQuiz();
   b.appendChild(again);b.appendChild(back);
