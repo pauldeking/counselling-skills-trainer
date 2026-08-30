@@ -109,6 +109,33 @@ textarea::placeholder{color:#bbb;}
 .trend-dot.good{background:var(--green-bg);border-color:var(--green-border);color:var(--green);}.trend-dot.partial{background:var(--amber-bg);border-color:var(--amber-border);color:#92400e;}.trend-dot.needs{background:#fee2e2;border-color:#fca5a5;color:var(--red);}
 .empty-state{text-align:center;padding:3rem 1rem;color:var(--text-muted);}.empty-state .icon{font-size:36px;margin-bottom:10px;}.empty-state p{font-size:14px;line-height:1.6;}
 @media(max-width:480px){.home-body{padding:1rem;}.rp-wrap{padding:1rem;}.stats-row{grid-template-columns:repeat(2,1fr);}.modality-grid{grid-template-columns:1fr 1fr;}}
+.quiz-wrap{padding:1.25rem;}
+.quiz-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;}
+.quiz-count{font-size:12px;color:var(--text-muted);}
+.quiz-track{height:5px;background:var(--warm-grey);border-radius:3px;margin-bottom:1.1rem;}
+.quiz-track-fill{height:100%;border-radius:3px;background:var(--navy);transition:width 0.3s;}
+.quiz-skill{display:inline-block;font-size:12px;padding:3px 10px;border-radius:20px;background:#f0f4f9;color:var(--navy);font-weight:500;border:1px solid #c8d8ec;margin-bottom:0.75rem;}
+.quiz-stem{background:#fff;border:1px solid var(--border);border-radius:12px;padding:1rem 1.1rem;margin-bottom:0.4rem;}
+.quiz-stem-lbl{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;}
+.quiz-stem-txt{font-size:15px;color:var(--text);line-height:1.5;font-style:italic;}
+.quiz-ask{font-size:13px;color:var(--text-sec);margin:0.9rem 0 0.6rem;}
+.quiz-opt{width:100%;text-align:left;background:#fff;border:2px solid var(--border);border-radius:10px;padding:0.85rem 1rem;margin-bottom:8px;font-size:14px;line-height:1.45;color:var(--text);cursor:pointer;transition:all 0.15s;font-family:inherit;}
+.quiz-opt:hover:not(:disabled){border-color:var(--navy);}
+.quiz-opt:disabled{cursor:default;}
+.quiz-opt.correct{border-color:var(--green);background:#f6fbf8;}
+.quiz-opt.wrong{border-color:var(--red);background:#fef6f6;}
+.quiz-opt.dim{opacity:0.55;}
+.quiz-why{font-size:13px;line-height:1.5;margin-top:7px;padding-left:2px;color:var(--text-sec);}
+.quiz-why.good{color:var(--green);}
+.quiz-why.bad{color:var(--text-muted);}
+.quiz-res{text-align:center;padding:1.5rem 0;}
+.quiz-res-num{font-size:40px;font-weight:700;color:var(--navy);}
+.quiz-res-lbl{font-size:14px;color:var(--text-sec);margin-top:4px;}
+.quiz-res-note{font-size:13px;color:var(--text-muted);line-height:1.55;margin-top:0.9rem;text-align:left;background:#fff;border:1px solid var(--border);border-radius:12px;padding:1rem;}
+.quiz-cta{display:block;width:100%;margin-top:0.9rem;padding:12px;background:#fff;color:var(--navy);border:2px solid var(--navy);border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;}
+.quiz-cta:hover{background:#f0f4f9;}
+.quiz-locked{opacity:0.5;border-color:var(--border);color:var(--text-muted);cursor:default;}
+.quiz-locked:hover{background:#fff;}
 </style>
 </head>
 <body>
@@ -210,7 +237,20 @@ textarea::placeholder{color:#bbb;}
       <div id="gibbs-form"></div>
       <button class="save-btn" onclick="saveGibbs()">Save reflection &#8594;</button>
     </div>
+    <button class="quiz-cta" id="comp-quiz-btn" onclick="startScenarioQuiz()">&#129504; Quick quiz on this skill &#8594;</button>
     <button class="big-btn" style="margin-top:1rem" onclick="goHome()">Back to home</button>
+  </div>
+</div>
+
+<!-- QUIZ -->
+<div id="quiz" class="screen">
+  <div class="quiz-wrap">
+    <div class="quiz-top">
+      <button class="back-btn" style="margin-bottom:0" id="quiz-back" onclick="exitQuiz()">&#8592; Back</button>
+      <div class="quiz-count" id="quiz-count"></div>
+    </div>
+    <div class="quiz-track"><div class="quiz-track-fill" id="quiz-track-fill" style="width:0%"></div></div>
+    <div id="quiz-body"></div>
   </div>
 </div>
 
