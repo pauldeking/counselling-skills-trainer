@@ -202,7 +202,7 @@ function renderScenarios(){
 
 function renderProgressBars(){
   const el=document.getElementById('progress-bars');
-  const relevant=state.track==='micro'?['reflecting','paraphrasing','openQuestions','summarising','confrontation']:['oarsBasic','resistance','discrepancy','culturalMI','changeTalk','enabling'];
+  const relevant=state.track==='micro'?['reflecting','paraphrasing','openQuestions','summarising','confrontation']:state.track==='mi'?['oarsBasic','resistance','discrepancy','culturalMI','changeTalk','enabling']:['pdDefence','pdPatterns','pdTransference','pdConnections','pdUnsaid'];
   el.innerHTML=relevant.map(k=>{
     const p=Math.min(100,state.skills[k]||0);
     return `<div class="skill-row"><div class="skill-name">${SKILL_NAMES[k]}</div><div class="skill-bar-bg"><div class="skill-bar-fill" style="width:${p}%"></div></div><div class="skill-pct">${p}%</div></div>`;
