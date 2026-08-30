@@ -929,13 +929,31 @@ async function genQuiz(skillKeys,n){
   const clean=raw.replace(/```json|```/g,'').trim();
   const start=clean.indexOf('['), end=clean.lastIndexOf(']');
   const parsed=JSON.parse(clean.slice(start,end+1));
-  return parsed.filter(q=>
+  return shuffleQuiz(parsed.filter(q=>
     q && typeof q.stem==='string' &&
     Array.isArray(q.options) && q.options.length===4 &&
     Array.isArray(q.why) && q.why.length===4 &&
     typeof q.correct==='number' && q.correct>=0 && q.correct<4 &&
     SN[q.skillKey]
-  );
+  ));
+}
+
+// The generating model has a strong bias toward writing the correct answer
+// first, so option order is randomised here rather than trusted from the model.
+// Options and their explanations move together and `correct` is remapped.
+function shuffleQuiz(qs){
+  return qs.map(q=>{
+    const idx=q.options.map((_,i)=>i);
+    for(let i=idx.length-1;i>0;i--){
+      const j=Math.floor(Math.random()*(i+1));
+      [idx[i],idx[j]]=[idx[j],idx[i]];
+    }
+    return Object.assign({},q,{
+      options:idx.map(i=>q.options[i]),
+      why:idx.map(i=>q.why[i]),
+      correct:idx.indexOf(q.correct)
+    });
+  });
 }
 
 function startScenarioQuiz(){
