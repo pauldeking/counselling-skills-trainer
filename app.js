@@ -600,6 +600,8 @@ async function startRP(){
   document.getElementById('ta').value='';
   document.getElementById('mic-status').textContent='';
   document.getElementById('send-btn').disabled=false;
+  const ia0=document.getElementById('input-area');if(ia0)ia0.style.display='';
+  const hb0=document.getElementById('hint-btn');if(hb0)hb0.style.display='';
   updateT();showScreen('rp');
 
   // First run uses the hand-written opener: instant, and pitched exactly at the
@@ -661,7 +663,7 @@ async function send(){
     const lines=fbRaw.split('\n');
     const rl=lines.find(l=>/^(GOOD|PARTIAL|NEEDS_WORK)$/.test(l.trim()));
     const rating=rl?rl.trim():'PARTIAL';
-    const fbTxt=lines.filter(l=>!l.trim().match(/^(GOOD|PARTIAL|NEEDS_WORK)$/)).join(' ').trim();
+    const fbTxt=stripMd(lines.filter(l=>!l.trim().match(/^(GOOD|PARTIAL|NEEDS_WORK)$/)).join(' ').trim());
     sess.lastFB=fbTxt;
     const earned=rating==='GOOD'?Math.round(s.pts/s.turns):rating==='PARTIAL'?Math.round(s.pts/s.turns*0.5):5;
     sess.pts+=earned;
@@ -695,6 +697,12 @@ async function send(){
       // The last turn's feedback matters as much as any other, so the session
       // waits on a button here rather than whisking the student to the summary.
       document.getElementById('send-btn').disabled=true;
+      // The session is over, so take the input away rather than leaving a
+      // dead box that looks like it still accepts a reply.
+      const ia=document.getElementById('input-area');if(ia)ia.style.display='none';
+      const hb=document.getElementById('hint-btn');if(hb)hb.style.display='none';
+      const hx=document.getElementById('hint-box');if(hx)hx.style.display='none';
+      if(micWanted)stopMic();
       document.getElementById('tbar').textContent='Session complete — read the feedback below, then finish';
       const fin=document.createElement('button');
       fin.className='quiz-cta';
@@ -717,6 +725,20 @@ async function send(){
   }
 }
 
+// Models emit markdown even when asked not to, and feedback is rendered as
+// plain text, so the markers are stripped rather than shown literally.
+function stripMd(t){
+  return (t||'')
+    .replace(/\*\*\*(.+?)\*\*\*/g,'$1')
+    .replace(/\*\*(.+?)\*\*/g,'$1')
+    .replace(/(^|[\s(])\*(?!\s)(.+?)(?<!\s)\*/g,'$1$2')
+    .replace(/(^|[\s(])_(?!\s)(.+?)(?<!\s)_/g,'$1$2')
+    .replace(/`([^`]+)`/g,'$1')
+    .replace(/^#{1,6}\s*/gm,'')
+    .replace(/\s{2,}/g,' ')
+    .trim();
+}
+
 // ─── HINT ─────────────────────────────────────────────────────────────────────
 async function togHint(){
   const hb=document.getElementById('hint-box');
@@ -728,7 +750,7 @@ async function togHint(){
   try{
     const r=await api({model:'claude-sonnet-4-6',max_tokens:200,messages:[{role:'user',content:
       'You are a '+m.name+' supervisor giving a quick practical hint to a counselling student mid-session. Target skill: '+s.skill+'. The client just said: "'+sess.lastC+'". Student level: '+(sess.level==='new'?'beginner':sess.level==='some'?'intermediate':'experienced')+'. Give a 2-3 sentence hint specific to exactly what was just said, in the spirit of '+m.name+'. If beginner, suggest a starter phrase they could adapt. Warm and practical. No jargon without explaining it.'}]});
-    hb.textContent=r;
+    hb.textContent=stripMd(r);
   }catch(e){hb.textContent='Try something like: "'+s.learn.phrases[0]+'" — adapt it to what they just said.';}
 }
 
