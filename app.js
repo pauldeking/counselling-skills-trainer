@@ -287,6 +287,32 @@ const SCENARIOS = {
      learn:{explain:"Facing mortality with a client requires the counsellor to tolerate their own discomfort. The instinct is to reassure. What the client usually needs is one person who will not flinch — the willingness to stay is the intervention.",ex:"Client: 'Nobody wants to talk about it.' You: 'I will talk about it with you. I am not going to change the subject. What has been on your mind about it?'",phrases:["I am not going to change the subject.","Tell me what you have been thinking about it.","What is it like to have nowhere to put those thoughts?"]},
      turns:5,pts:100}
   ],
+  ifs: [
+    {id:'if1',title:"The part that has to be good",difficulty:'beginner',skill:'Noticing Parts',skillKey:'ifsParts',unlock:null,
+     client:{name:'Rowan',av:'R',ctx:"Rowan is 34 and was adopted as a baby. He describes himself as the easy one who never caused his parents any trouble."},
+     opener:"I've never really given my parents any grief. I was the easy one, the good one. That's just who I am, I suppose. A people pleaser.",
+     sys:"You are Rowan, 34, adopted as a baby, completely identified with being easy and good. 2-3 sentences. If the student gently offers parts language - treating the people-pleasing as a part of you rather than all of you - you try it on, find it strange, and notice something you had not seen. If they agree that this is simply your personality, or dig straight into your childhood, you stay flat and keep describing yourself as just being like that. Stay in character.",
+     learn:{explain:"IFS treats the mind as made of parts, with a calm core Self underneath. The first move is simply separating the person from the part. Not you are a people pleaser, but there is a part of you that works very hard to be easy. That small shift creates room to get curious.",ex:"Client: 'I'm a people pleaser, that's just me.' You: 'I wonder if it's all of you, or a part of you. Sounds like there's a part that works incredibly hard to be easy. How long has that part been on duty?'",phrases:["It sounds like there's a part of you that...","Is that all of you, or a part of you?","How long has that part been doing that job?"]},
+     turns:4,pts:60},
+    {id:'if2',title:"The part that leaves first",difficulty:'intermediate',skill:'Unblending',skillKey:'ifsUnblending',unlock:'if1',
+     client:{name:'Mei',av:'M',ctx:"Mei is 29 and was adopted from overseas as a toddler. She ends relationships before the other person can end them."},
+     opener:"I always finish it first. Always. It's not some big wound, it's just smarter, isn't it? Why sit around waiting for someone to work out you're not worth keeping.",
+     sys:"You are Mei, 29, adopted from overseas as a toddler, completely blended with a part that ends relationships pre-emptively - you speak as that part, not about it. 2-3 sentences. If the student helps you step back and asks how you feel toward that part, you get a flicker of separation and soften. If they challenge the belief, reassure you that you are worth keeping, or point out the pattern, the part digs in and argues. Stay in character.",
+     learn:{explain:"Blended means a part has taken the driving seat and the person speaks as it. Unblending creates a little space so the calm Self can look at the part rather than through it. The key question is how do you feel toward that part, because the answer tells you whether Self is present.",ex:"Client: 'It's just smarter to leave first.' You: 'That part has a strong case. Can we see if you can step back from it for a second? As you notice that part, how do you feel toward it?'",phrases:["As you notice that part, how do you feel toward it?","Could you ask it to give you a bit of room?","What does that part want you to know?"]},
+     turns:5,pts:80},
+    {id:'if3',title:"Asking the guard's permission",difficulty:'intermediate',skill:'Befriending Protectors',skillKey:'ifsProtectors',unlock:'if2',
+     client:{name:'Dean',av:'D',ctx:"Dean is 41 and was adopted at four after time in care. Any mention of his birth mother meets a hard wall of anger."},
+     opener:"I don't want to get into her. There's no point going over it. She made her choice, I turned out fine without her, so let's leave that one alone.",
+     sys:"You are Dean, 41, adopted at four from care, with a fiercely angry protector guarding anything about your birth mother. 2-3 sentences. If the student respects the protector, gets curious about what it does for you and what it fears would happen, it relaxes slightly and lets something through. If they push toward your birth mother, suggest you need to process it, or treat the anger as the problem, you get harder and shut the conversation down. Stay in character.",
+     learn:{explain:"Protectors keep vulnerable parts out of reach, and in IFS they are never the enemy. You get to know a protector before going anywhere near what it guards, and you ask its permission. Pushing past it confirms exactly what it fears and it will double down.",ex:"Client: 'Leave it alone.' You: 'I'm not going to push past that. I'd rather get to know the part that's standing in the way. What's it worried would happen if we went there?'",phrases:["I'm not going to go around that part.","What is it afraid would happen if we did?","What job has it been doing for you?"]},
+     turns:5,pts:80},
+    {id:'if4',title:"The young one who waited",difficulty:'advanced',skill:'Self-Energy with Exiles',skillKey:'ifsExiles',unlock:'if3',
+     client:{name:'Priya',av:'P',ctx:"Priya is 37, was adopted transracially as an infant, and has recently had her first child. Holding her daughter has stirred something very young."},
+     opener:"Since she was born I keep... when I hold her I think, she was this small. I was this small. *long pause* And someone put me down and walked away. Sorry. I don't know where that came from.",
+     sys:"You are Priya, 37, adopted transracially as an infant, recently a mother, with a very young exiled part surfacing. 2-3 sentences, sometimes halting. If the student stays calm and steady, does not rush to reassure you, and helps you turn toward that young part with warmth, you can stay with it and something moves. If they reassure you that your birth mother probably loved you, explain relinquishment, or move to problem-solving, the young part withdraws and you go polite and distant. Stay in character.",
+     learn:{explain:"Exiles are young parts carrying pain that got locked away. They do not need fixing or explaining, they need to be witnessed by the person's own calm Self. Your job is to hold steady enough that the client can turn toward that part rather than away, and to resist the pull to reassure.",ex:"Client: 'Someone put me down and walked away.' You: 'Nothing about that needs an apology. There's a very young part of you right there. Can you let her know you can feel her? See what she needs you to know.'",phrases:["Can we stay with her a moment?","Let her know you can feel her.","What does that young part want you to understand?"]},
+     turns:5,pts:100}
+  ],
   traumaInformed: [
     {id:'ti1',title:"Safety before story",difficulty:'beginner',skill:'Establishing Safety',skillKey:'tiSafety',unlock:null,
      client:{name:'Kim',av:'K',ctx:"Kim is 30. It is her first session. She is visibly on edge, watching the door, and wants to tell you everything at once."},
@@ -317,6 +343,14 @@ const SCENARIOS = {
 
 // ─── EXTRA GLOSSARY TERMS FOR NEW MODALITIES ─────────────────────────────────
 Object.assign(G, {
+  'parts':{def:"In IFS, the sub-personalities everyone has. Not a disorder, just how minds work.",ex:"A part that pushes you to achieve, and another that wants to hide."},
+  'self':{def:"The calm, curious core underneath the parts. Not a part itself, and it cannot be damaged.",ex:"The steadiness you feel when you are not caught up in a reaction."},
+  'exile':{def:"A young part carrying pain that has been pushed out of awareness to keep it manageable.",ex:"The infant part of an adopted person that still feels the moment of separation."},
+  'protector':{def:"A part whose job is keeping vulnerable parts out of reach, often through control, anger, or distance.",ex:"The anger that shuts down any talk of a birth parent."},
+  'blended':{def:"When a part has taken over and the person speaks as it rather than about it.",ex:"'It's just smarter to leave first' is the part talking, not the whole person."},
+  'unblending':{def:"Creating a little space between the person and a part so the calm Self can be present.",ex:"Asking how do you feel toward that part."},
+  'relinquishment':{def:"The separation of an infant or child from their birth parent. A loss in its own right, whatever came after.",ex:"An adopted person grieving a mother they never consciously knew."},
+
   'unconditional positive regard':{def:"Accepting the person exactly as they are, without approving or disapproving of what they bring.",ex:"You do not have to earn the right to be listened to."},
   'congruence':{def:"Being genuine — your outward manner matches what is actually going on inside you.",ex:"Saying 'I notice I want to give you an answer' rather than hiding behind technique."},
   'automatic thought':{def:"A fast, barely noticed thought that flashes through the mind just before a strong feeling.",ex:"'I'm going to make a fool of myself' arriving a second before panic."},
@@ -346,6 +380,7 @@ const MODALITIES = [
   {id:'psychodynamic',icon:'🌊',name:'Psychodynamic',desc:'Defences, transference and unconscious patterns.',skillKeys:['pdDefence','pdPatterns','pdTransference','pdConnections','pdUnsaid']},
   {id:'narrative',icon:'📖',name:'Narrative Therapy',desc:'Externalising the problem and re-authoring the story.',skillKeys:['nrExternalising','nrUnique','nrReAuthoring','nrWitnessing']},
   {id:'act',icon:'🍃',name:'ACT',desc:'Defusion, acceptance, values and present-moment contact.',skillKeys:['actDefusion','actAcceptance','actValues','actPresent']},
+  {id:'ifs',icon:'🪞',name:'Internal Family Systems',desc:'Parts, protectors and Self. Scenarios focus on adopted clients.',skillKeys:['ifsParts','ifsUnblending','ifsProtectors','ifsExiles']},
   {id:'existential',icon:'🕯️',name:'Existential',desc:'Meaning, freedom, isolation and mortality.',skillKeys:['exMeaning','exFreedom','exIsolation','exMortality']},
   {id:'traumaInformed',icon:'🛡️',name:'Trauma-Informed',desc:'Safety first, pacing, choice and stabilisation.',skillKeys:['tiSafety','tiWindow','tiChoice','tiResourcing']}
 ];
@@ -359,6 +394,7 @@ const SN = {
   sfExceptions:'Exception Finding',sfMiracle:'The Miracle Question',sfScaling:'Scaling Questions',sfGoals:'Goal Construction',
   nrExternalising:'Externalising',nrUnique:'Unique Outcomes',nrReAuthoring:'Re-authoring',nrWitnessing:'Witnessing and Re-membering',
   actDefusion:'Cognitive Defusion',actAcceptance:'Acceptance and Willingness',actValues:'Values Clarification',actPresent:'Present Moment Contact',
+  ifsParts:'Noticing Parts',ifsUnblending:'Unblending',ifsProtectors:'Befriending Protectors',ifsExiles:'Self-Energy with Exiles',
   exMeaning:'Working with Meaning',exFreedom:'Freedom and Responsibility',exIsolation:'Existential Isolation',exMortality:'Mortality and Finitude',
   tiSafety:'Establishing Safety',tiWindow:'Window of Tolerance',tiChoice:'Choice and Collaboration',tiResourcing:'Resourcing and Stabilisation'
 };
@@ -375,6 +411,7 @@ const MOD_PROMPT = {
   narrative:"You are a warm expert narrative therapy supervisor. Look for externalising language, spotting unique outcomes, re-authoring and re-membering. Flag any language that fused the person with the problem. Terms you may use: externalising, unique outcome, re-authoring, thickening the story, re-membering, dominant story.",
   act:"You are a warm expert ACT supervisor. Look for defusion, acceptance and willingness, values clarification, present-moment contact and workability. Flag any attempt to dispute or replace a thought rather than change the relationship to it. Terms you may use: defusion, fusion, acceptance, willingness, values, present moment contact, workability, experiential avoidance.",
   existential:"You are a warm expert existential supervisor. Look for staying with the client's question rather than answering it, working with meaning, freedom and responsibility, isolation and mortality. Flag reassurance or premature problem-solving. Terms you may use: meaning, freedom, responsibility, existential isolation, finitude, authenticity.",
+  ifs:"You are a warm expert IFS supervisor. Look for parts language, unblending, befriending protectors before going near what they guard, asking permission, and holding Self-energy rather than fixing. Flag any attempt to argue with a part, reassure an exile, or push past a protector. These scenarios involve adopted clients, so also flag anything that minimises relinquishment loss, treats a good adoptive family as cancelling that loss, or leans on grateful-adoptee framing. Terms you may use: part, Self, Self-energy, exile, protector, manager, firefighter, blended, unblending, burden, witnessing.",
   traumaInformed:"You are a warm expert trauma-informed supervisor. Look for pacing, safety before story, tracking the window of tolerance, offering choice and control, grounding and resourcing. Flag any push toward disclosure the client was not stabilised for. Terms you may use: safety, pacing, window of tolerance, grounding, dissociation, choice and control, resourcing, stabilisation."
 };
 
