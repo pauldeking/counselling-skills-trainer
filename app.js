@@ -313,6 +313,58 @@ const SCENARIOS = {
      learn:{explain:"Exiles are young parts carrying pain that got locked away. They do not need fixing or explaining, they need to be witnessed by the person's own calm Self. Your job is to hold steady enough that the client can turn toward that part rather than away, and to resist the pull to reassure.",ex:"Client: 'Someone put me down and walked away.' You: 'Nothing about that needs an apology. There's a very young part of you right there. Can you let her know you can feel her? See what she needs you to know.'",phrases:["Can we stay with her a moment?","Let her know you can feel her.","What does that young part want you to understand?"]},
      turns:5,pts:100}
   ],
+  somatic: [
+    {id:'se1',title:"Finding the felt sense",difficulty:'beginner',skill:'Tracking Sensation',skillKey:'seFeltSense',unlock:null,
+     client:{name:'Gordon',av:'G',ctx:"Gordon is 48. He describes his anxiety entirely in thoughts and theories and has little sense of his body."},
+     opener:"I've analysed this to death. I know exactly why I'm anxious, I could write you an essay on it. Knowing hasn't changed a thing though.",
+     sys:"You are Gordon, 48, highly intellectual and disconnected from your body. 2-3 sentences. If the student patiently invites you to notice a physical sensation right now and stays with it without explaining, you find something vague at first then more specific, and it surprises you. If they engage with your analysis, explain the nervous system, or ask how you feel emotionally, you return to theorising. Stay in character.",
+     learn:{explain:"Somatic Experiencing starts with sensation rather than story. The felt sense is the raw physical experience underneath the words, and clients who live in their heads often need slow, specific invitations to find it. Sensation words are things like tight, warm, buzzing, heavy.",ex:"Client: 'I could write you an essay on it.' You: 'I don't doubt it. Let's try something different. As you sit here now, is there anywhere in your body you notice anything at all, even something small?'",phrases:["What do you notice in your body as you say that?","Is there a texture or temperature to it?","Take your time. Nothing has to happen."]},
+     turns:4,pts:60},
+    {id:'se2',title:"A drop at a time",difficulty:'intermediate',skill:'Titration',skillKey:'seTitration',unlock:'se1',
+     client:{name:'Tara',av:'T',ctx:"Tara is 33 and was adopted at birth. She has recently started searching for her birth mother and floods when she talks about it."},
+     opener:"I found a name. Forty years of nothing and now there's a name and I can't stop, I've been up till three every night, there's so much and I need to get through all of it —",
+     sys:"You are Tara, 33, adopted at birth, flooding with activation about a birth family search. 2-3 sentences, fast and tumbling if unchecked. If the student slows you right down and helps you take one small piece at a time while staying with your body, you settle and something lands properly. If they follow your pace, ask for more of the story, or ask how you feel about your birth mother, you escalate and become more overwhelmed. Stay in character.",
+     learn:{explain:"Titration means working with a drop of the material at a time rather than the whole flood. Too much activation at once overwhelms the nervous system and nothing gets processed. Slowing down is the intervention, even when the client is pushing to go faster.",ex:"Client: 'There's so much and I need to get through all of it.' You: 'I can feel how much there is. I want to go slower, not because it doesn't matter but because it does. Can we take just one piece? And check what happens in your body as we do.'",phrases:["Let's take just one piece of that.","Can we slow this right down?","That's plenty for now. What happens inside as we pause?"]},
+     turns:5,pts:80},
+    {id:'se3',title:"Moving between",difficulty:'intermediate',skill:'Pendulation',skillKey:'sePendulation',unlock:'se2',
+     client:{name:'Bridget',av:'B',ctx:"Bridget is 45. When distress arrives she is convinced it will swallow her, so she braces against it constantly."},
+     opener:"If I let myself actually feel it, I'll never get back. That's what it feels like. Like there's no bottom to it, so I just hold on and don't look.",
+     sys:"You are Bridget, 45, braced against her own distress and afraid it is bottomless. 2-3 sentences. If the student helps you move back and forth between the difficult sensation and somewhere neutral or steadier in your body, you discover it is not bottomless and relax slightly. If they encourage you to go into the feeling fully, or only reassure you, you brace harder. Stay in character.",
+     learn:{explain:"Pendulation means moving between activation and settling rather than staying in either. The nervous system discharges through that rhythm. When a client fears a feeling is bottomless, experiencing the swing back is what proves otherwise.",ex:"Client: 'There's no bottom to it.' You: 'Let's not go all the way in. Notice that tightness for a moment, then find somewhere in your body that feels even slightly more settled. Go back and forth for me.'",phrases:["Is there anywhere that feels a bit more neutral?","Let's go back to the steadier place for a moment.","Notice what happens as you move between the two."]},
+     turns:5,pts:80},
+    {id:'se4',title:"Letting it finish",difficulty:'advanced',skill:'Completion and Discharge',skillKey:'seCompletion',unlock:'se3',
+     client:{name:'Callum',av:'C',ctx:"Callum is 39. Describing a car accident, he notices his arms want to do something and immediately stops himself."},
+     opener:"My arms went to... *stops* sorry, that's stupid. It's like they wanted to push. But I didn't do anything at the time, I just froze. I've always felt sick about that.",
+     sys:"You are Callum, 39, noticing an incomplete defensive impulse and shutting it down with shame. 2-3 sentences. If the student treats the impulse as important, slows it down and lets it complete in its own time without forcing, something releases and you feel different. If they reassure you that freezing is normal, explain the freeze response, or ask you to act it out quickly, the impulse disappears and you go flat. Stay in character.",
+     learn:{explain:"When a defensive response is interrupted, the impulse stays in the body unfinished. Letting it complete slowly, as movement or sensation, allows the charge to discharge. This is not acting it out dramatically. It is giving a small movement the time it never had.",ex:"Client: 'It's like they wanted to push.' You: 'That's not stupid at all, that's important. Could we let your arms do that very slowly, in their own time? No need to finish it. Just notice what they want.'",phrases:["Let's let that movement happen slowly.","What do your arms want to do?","Stay with that. No rush to finish it."]},
+     turns:5,pts:100}
+  ],
+  sensorimotor: [
+    {id:'sm1',title:"Naming what you notice",difficulty:'beginner',skill:'Contact Statements',skillKey:'smContact',unlock:null,
+     client:{name:'Hana',av:'H',ctx:"Hana is 31. She talks steadily about a difficult week while her shoulders climb and her hands grip the chair."},
+     opener:"It's been a full week, but I'm managing. Work's fine, home's fine. I don't really have anything dramatic to report, honestly.",
+     sys:"You are Hana, 31, saying everything is fine while your body says otherwise. 2-3 sentences. If the student names what they observe in your body without interpreting it, you pause, notice it yourself, and something more honest comes out. If they ask whether you are really fine, interpret your body language for you, or accept the surface account, you carry on reporting that things are fine. Stay in character.",
+     learn:{explain:"A contact statement names what you observe without interpreting it. It is the foundation of Sensorimotor work because it brings the client's attention to present experience rather than the story. Describe, do not diagnose.",ex:"Client: 'Work's fine, home's fine.' You: 'I notice your shoulders came up as you said that.' Not: 'You seem tense, so something must be wrong.'",phrases:["I notice your shoulders just lifted.","Something happened there as you said that.","Your hands tightened just then."]},
+     turns:4,pts:60},
+    {id:'sm2',title:"Tracking in the moment",difficulty:'intermediate',skill:'Tracking Present Experience',skillKey:'smTracking',unlock:'sm1',
+     client:{name:'Ruth',av:'R',ctx:"Ruth is 52. She recounts events in detail but is never actually present in the room while she does it."},
+     opener:"So then he said what he said, and I did what I always do, which is nothing, and then the whole evening went the way it always goes. Same as ever.",
+     sys:"You are Ruth, 52, recounting events from a distance and not present in the room. 2-3 sentences. If the student interrupts the narrative gently and directs you to what is happening in your body right now as you tell it, you arrive in the room and notice something live. If they follow the story, ask what happened next, or ask how it made you feel, you carry on narrating from a distance. Stay in character.",
+     learn:{explain:"Tracking means following the client's present-moment experience rather than the content of the story. In Sensorimotor work the story is the doorway, not the destination. The question is always what is happening now, as they tell it.",ex:"Client: 'Same as ever.' You: 'Can I stop you there? As you were telling me that just now, something shifted in your breathing. What's happening right now, as you say it?'",phrases:["Can I stop you there for a second?","What is happening right now, as you tell me?","Let's stay with what just happened in your body."]},
+     turns:5,pts:80},
+    {id:'sm3',title:"Something to stand on",difficulty:'intermediate',skill:'Somatic Resources',skillKey:'smResources',unlock:'sm2',
+     client:{name:'Theo',av:'T',ctx:"Theo is 27 and was adopted at three. He says he has never felt settled anywhere and describes himself as permanently unsteady."},
+     opener:"I've never felt settled. Not in my family, not in any house I've lived in, not in my own skin really. There's no ground under me, there never has been.",
+     sys:"You are Theo, 27, adopted at three, describing a lifelong lack of groundedness. 2-3 sentences. If the student helps you find something physical that gives even a little steadiness right now - feet on the floor, back against the chair, a grounding posture - you find it, are surprised by it, and stay with it. If they reassure you that you belong, talk about your adoptive family, or move to the history too quickly, you dismiss it and restate that there is no ground. Stay in character.",
+     learn:{explain:"A somatic resource is something in the body that reliably brings steadiness. Feet on the floor, a straighter spine, contact with the chair. For someone who has never felt settled, finding a physical experience of ground is more convincing than being told they belong.",ex:"Client: 'There's no ground under me.' You: 'Could we test that for a second? Press your feet into the floor and notice what happens. Not what you think about it, just what you feel.'",phrases:["Press your feet into the floor and notice.","Where in your body is there even a little steadiness?","Stay with that. What happens as you do?"]},
+     turns:5,pts:80},
+    {id:'sm4',title:"The movement that never happened",difficulty:'advanced',skill:'Boundary and Impulse',skillKey:'smBoundary',unlock:'sm3',
+     client:{name:'Naomi',av:'N',ctx:"Naomi is 36. She cannot say no to anyone and her body collapses inward whenever she talks about it."},
+     opener:"I just go along with things. Even when everything in me is screaming no, I hear myself saying yes. *shoulders curling in* I don't know how to do it any other way.",
+     sys:"You are Naomi, 36, unable to say no, with a body that collapses inward. 2-3 sentences. If the student notices the collapse and helps you explore a physical boundary - a hand pushing out, sitting taller, a small no in the body - you find it difficult then powerful. If they suggest assertiveness techniques, role-play the conversation, or explore why you are like this, your body stays collapsed and nothing shifts. Stay in character.",
+     learn:{explain:"Boundaries in Sensorimotor work are physical before they are verbal. A person who cannot say no often has a body that collapses before words are reached. Finding the movement first, a hand pushing out or a spine straightening, builds the boundary from the body up.",ex:"Client: 'I hear myself saying yes.' You: 'I notice your shoulders curled in as you said that. What if we tried the opposite? Push your hand out against mine, slowly, and see what happens.'",phrases:["What would your body do if it could say no?","Try pushing your hand out, slowly.","Notice what happens as you sit a little taller."]},
+     turns:5,pts:100}
+  ],
   traumaInformed: [
     {id:'ti1',title:"Safety before story",difficulty:'beginner',skill:'Establishing Safety',skillKey:'tiSafety',unlock:null,
      client:{name:'Kim',av:'K',ctx:"Kim is 30. It is her first session. She is visibly on edge, watching the door, and wants to tell you everything at once."},
@@ -343,6 +395,13 @@ const SCENARIOS = {
 
 // ─── EXTRA GLOSSARY TERMS FOR NEW MODALITIES ─────────────────────────────────
 Object.assign(G, {
+  'felt sense':{def:"The raw physical experience underneath the words, described in sensation rather than emotion.",ex:"Tight, warm, buzzing, heavy, fluttery."},
+  'titration':{def:"Working with a small amount of difficult material at a time so the nervous system is not overwhelmed.",ex:"Taking one piece of a story rather than the whole flood."},
+  'pendulation':{def:"Moving back and forth between difficult sensation and somewhere steadier, which is how charge discharges.",ex:"Noticing the tightness, then the feet on the floor, then back."},
+  'activation':{def:"The nervous system revving up. Not the same as emotion, and often felt before it is named.",ex:"Heart racing and speech speeding up while talking."},
+  'contact statement':{def:"Naming what you observe without interpreting it, to bring attention to present experience.",ex:"'Your shoulders just lifted' rather than 'you seem tense'."},
+  'somatic resource':{def:"Something physical that reliably brings steadiness and can be returned to.",ex:"Feet pressed into the floor, back against the chair."},
+
   'parts':{def:"In IFS, the sub-personalities everyone has. Not a disorder, just how minds work.",ex:"A part that pushes you to achieve, and another that wants to hide."},
   'self':{def:"The calm, curious core underneath the parts. Not a part itself, and it cannot be damaged.",ex:"The steadiness you feel when you are not caught up in a reaction."},
   'exile':{def:"A young part carrying pain that has been pushed out of awareness to keep it manageable.",ex:"The infant part of an adopted person that still feels the moment of separation."},
@@ -380,9 +439,11 @@ const MODALITIES = [
   {id:'psychodynamic',icon:'🌊',name:'Psychodynamic',desc:'Defences, transference and unconscious patterns.',skillKeys:['pdDefence','pdPatterns','pdTransference','pdConnections','pdUnsaid']},
   {id:'narrative',icon:'📖',name:'Narrative Therapy',desc:'Externalising the problem and re-authoring the story.',skillKeys:['nrExternalising','nrUnique','nrReAuthoring','nrWitnessing']},
   {id:'act',icon:'🍃',name:'ACT',desc:'Defusion, acceptance, values and present-moment contact.',skillKeys:['actDefusion','actAcceptance','actValues','actPresent']},
-  {id:'ifs',icon:'🪞',name:'Internal Family Systems',desc:'Parts, protectors and Self. Scenarios focus on adopted clients.',skillKeys:['ifsParts','ifsUnblending','ifsProtectors','ifsExiles']},
+  {id:'ifs',icon:'🪞',name:'Internal Family Systems',desc:'Parts, protectors and Self. Scenarios focus on adopted clients.',note:1,skillKeys:['ifsParts','ifsUnblending','ifsProtectors','ifsExiles']},
+  {id:'somatic',icon:'🌀',name:'Somatic Experiencing',desc:'Felt sense, titration, pendulation and completing what the body started.',note:1,skillKeys:['seFeltSense','seTitration','sePendulation','seCompletion']},
+  {id:'sensorimotor',icon:'🧘',name:'Sensorimotor Psychotherapy',desc:'Contact statements, tracking the body, resources and boundaries.',note:1,skillKeys:['smContact','smTracking','smResources','smBoundary']},
   {id:'existential',icon:'🕯️',name:'Existential',desc:'Meaning, freedom, isolation and mortality.',skillKeys:['exMeaning','exFreedom','exIsolation','exMortality']},
-  {id:'traumaInformed',icon:'🛡️',name:'Trauma-Informed',desc:'Safety first, pacing, choice and stabilisation.',skillKeys:['tiSafety','tiWindow','tiChoice','tiResourcing']}
+  {id:'traumaInformed',icon:'🛡️',name:'Trauma-Informed',desc:'Safety first, pacing, choice and stabilisation.',note:2,skillKeys:['tiSafety','tiWindow','tiChoice','tiResourcing']}
 ];
 
 const SN = {
@@ -394,6 +455,8 @@ const SN = {
   sfExceptions:'Exception Finding',sfMiracle:'The Miracle Question',sfScaling:'Scaling Questions',sfGoals:'Goal Construction',
   nrExternalising:'Externalising',nrUnique:'Unique Outcomes',nrReAuthoring:'Re-authoring',nrWitnessing:'Witnessing and Re-membering',
   actDefusion:'Cognitive Defusion',actAcceptance:'Acceptance and Willingness',actValues:'Values Clarification',actPresent:'Present Moment Contact',
+  seFeltSense:'Tracking Sensation',seTitration:'Titration',sePendulation:'Pendulation',seCompletion:'Completion and Discharge',
+  smContact:'Contact Statements',smTracking:'Tracking Present Experience',smResources:'Somatic Resources',smBoundary:'Boundary and Impulse',
   ifsParts:'Noticing Parts',ifsUnblending:'Unblending',ifsProtectors:'Befriending Protectors',ifsExiles:'Self-Energy with Exiles',
   exMeaning:'Working with Meaning',exFreedom:'Freedom and Responsibility',exIsolation:'Existential Isolation',exMortality:'Mortality and Finitude',
   tiSafety:'Establishing Safety',tiWindow:'Window of Tolerance',tiChoice:'Choice and Collaboration',tiResourcing:'Resourcing and Stabilisation'
@@ -411,6 +474,8 @@ const MOD_PROMPT = {
   narrative:"You are a warm expert narrative therapy supervisor. Look for externalising language, spotting unique outcomes, re-authoring and re-membering. Flag any language that fused the person with the problem. Terms you may use: externalising, unique outcome, re-authoring, thickening the story, re-membering, dominant story.",
   act:"You are a warm expert ACT supervisor. Look for defusion, acceptance and willingness, values clarification, present-moment contact and workability. Flag any attempt to dispute or replace a thought rather than change the relationship to it. Terms you may use: defusion, fusion, acceptance, willingness, values, present moment contact, workability, experiential avoidance.",
   existential:"You are a warm expert existential supervisor. Look for staying with the client's question rather than answering it, working with meaning, freedom and responsibility, isolation and mortality. Flag reassurance or premature problem-solving. Terms you may use: meaning, freedom, responsibility, existential isolation, finitude, authenticity.",
+  somatic:"You are a warm expert Somatic Experiencing supervisor. Look for working with sensation rather than story, titrating the material, pendulating between activation and settling, and allowing incomplete defensive impulses to finish slowly. Flag any moment the student pushed for more material, explained the nervous system instead of tracking it, or chased emotion instead of sensation. Terms you may use: felt sense, sensation, activation, titration, pendulation, discharge, completion, settling.",
+  sensorimotor:"You are a warm expert Sensorimotor Psychotherapy supervisor. Look for contact statements that describe without interpreting, tracking present-moment experience rather than following the story, building somatic resources, and working with boundaries and impulses physically. Flag any moment the student interpreted the body for the client, followed the narrative, or offered a cognitive technique where a physical one was called for. Terms you may use: contact statement, tracking, present experience, somatic resource, grounding, boundary, impulse, organising experience.",
   ifs:"You are a warm expert IFS supervisor. Look for parts language, unblending, befriending protectors before going near what they guard, asking permission, and holding Self-energy rather than fixing. Flag any attempt to argue with a part, reassure an exile, or push past a protector. These scenarios involve adopted clients, so also flag anything that minimises relinquishment loss, treats a good adoptive family as cancelling that loss, or leans on grateful-adoptee framing. Terms you may use: part, Self, Self-energy, exile, protector, manager, firefighter, blended, unblending, burden, witnessing.",
   traumaInformed:"You are a warm expert trauma-informed supervisor. Look for pacing, safety before story, tracking the window of tolerance, offering choice and control, grounding and resourcing. Flag any push toward disclosure the client was not stabilised for. Terms you may use: safety, pacing, window of tolerance, grounding, dissociation, choice and control, resourcing, stabilisation."
 };
@@ -557,6 +622,21 @@ function renderScenarioList(){
   document.getElementById('sl-icon').textContent=m.icon;
   document.getElementById('sl-title').textContent=m.name;
   document.getElementById('sl-desc').textContent=m.desc;
+
+  // Some material is more likely to be live for the student than academic.
+  const NOTES={
+    1:'These scenarios involve adoption and early separation. If this is part of your own story it may land personally rather than academically, which is worth taking to supervision. Step away whenever you need to.',
+    2:'These scenarios involve trauma responses. If this is part of your own story it may land personally rather than academically, which is worth taking to supervision. Step away whenever you need to.'
+  };
+  let nb=document.getElementById('sl-note');
+  if(!nb){
+    nb=document.createElement('div');
+    nb.id='sl-note';
+    nb.style.cssText='font-size:12.5px;line-height:1.5;color:var(--text-sec);background:#fffaf0;border:1px solid #f0dcc0;border-radius:10px;padding:10px 12px;margin-top:10px';
+    document.getElementById('sl-desc').insertAdjacentElement('afterend',nb);
+  }
+  if(m.note){nb.textContent=NOTES[m.note];nb.style.display='';}
+  else{nb.style.display='none';}
 
   const list=SCENARIOS[m.id]||[];
   document.getElementById('sl-scenarios').innerHTML=list.map(s=>{
