@@ -1371,9 +1371,12 @@ async function genQuiz(skillKeys,n,avoid){
     'Write exactly '+n+' questions, spread across the skills listed above.\n\n'+
     'For each question:\n'+
     '- "stem" is what the client says, in natural spoken English, 1-2 sentences.\n'+
-    '- "options" is exactly 4 possible counsellor responses. One clearly demonstrates the target skill. The other 3 are plausible mistakes a real student makes: giving advice, asking a closed question, reassuring too quickly, jumping to a solution, or naming the wrong thing. Distractors must sound reasonable, not obviously silly.\n'+
+    '- "options" is exactly 4 counsellor responses. ALL FOUR must sound like a competent, trained practitioner and use the language of this approach where it would naturally appear. The wrong ones are NEAR MISSES: right vocabulary, wrong move.\n'+
+    '  Build the three distractors from errors like these, choosing whichever fit the skill: uses the correct terminology but still pushes past what the client is protecting; names the right thing but interprets it FOR the client instead of asking; technically correct but arrives far too early; attends to the wrong element (the content instead of the process, the story instead of the body, the secondary emotion instead of the primary); subtly reassures while appearing to explore; asks a question that leads the client to a conclusion rather than opening one.\n'+
+    '  HARD REQUIREMENT: a student who has only memorised the vocabulary of this approach must NOT be able to pick the right answer. If the correct option is the only one using the approach\'s terminology, the question has failed and must be rewritten. Discrimination has to rest on clinical judgement.\n'+
+    '  Keep all four options within a similar length of each other and in the same register. Do not make the correct one longer, warmer, more detailed or more elaborate than the rest. Length must not give it away.\n'+
     '- "correct" is the 0-based index of the best response.\n'+
-    '- "why" is exactly 4 short explanations, one per option in the same order, each under 25 words, saying plainly why that response does or does not demonstrate the skill. Write for someone new to counselling: no unexplained jargon.\n'+
+    '- "why" is exactly 4 explanations, one per option in the same order, each under 30 words. Because the distractors are near misses, each explanation must name the SPECIFIC thing that makes that response fall short, not just say it is wrong. Write for someone new to counselling: no unexplained jargon.\n'+
     '- "skillKey" is the key of the skill being tested, exactly as given above.\n\n'+
     ((avoid&&avoid.length)?('Do NOT reuse or lightly reword any of these client statements, which are already in this quiz:\n'+avoid.map(a=>'- '+a).join('\n')+'\n\n'):'')+
     'Respond with ONLY a JSON array, no preamble and no markdown fences:\n'+
@@ -1388,12 +1391,22 @@ async function genQuiz(skillKeys,n,avoid){
     Array.isArray(q.options) && q.options.length===4 &&
     Array.isArray(q.why) && q.why.length===4 &&
     typeof q.correct==='number' && q.correct>=0 && q.correct<4 &&
-    SN[q.skillKey]
+    SN[q.skillKey] && lengthFair(q)
   ));
 }
 
 // The generating model has a strong bias toward writing the correct answer
 // first, so option order is randomised here rather than trusted from the model.
+// A conspicuously longer or shorter correct answer is a giveaway on its own,
+// so questions where it stands out on length are dropped.
+function lengthFair(q){
+  const lens=q.options.map(o=>String(o).length);
+  const right=lens[q.correct];
+  const others=lens.filter((_,i)=>i!==q.correct);
+  const mean=others.reduce((a,b)=>a+b,0)/others.length;
+  return right<=mean*1.5 && right>=mean*0.6;
+}
+
 function shuffleQuiz(qs){
   return qs.map(q=>{
     const idx=q.options.map((_,i)=>i);
@@ -1442,7 +1455,7 @@ async function launchQuiz(skillKeys,n,origin,title){
 
   // The rest are written while the student reads question one.
   if(n>1){
-    const rest1=()=>genQuiz(skillKeys,n-1,quiz.qs.map(q=>q.stem));
+    const rest1=()=>genQuiz(skillKeys,n,quiz.qs.map(q=>q.stem)).then(r=>r.slice(0,n-1));
     quiz.pending=rest1().catch(()=>rest1())   // one retry; these failures are usually transient
       .then(rest=>{
         if(mine!==quiz)return;
