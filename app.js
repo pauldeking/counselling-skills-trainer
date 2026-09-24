@@ -785,6 +785,7 @@ async function startRP(){
   document.getElementById('send-btn').disabled=false;
   const ia0=document.getElementById('input-area');if(ia0)ia0.style.display='';
   const hb0=document.getElementById('hint-btn');if(hb0)hb0.style.display='';
+  const db0=document.getElementById('deeper-btn');if(db0)db0.style.display='';
   updateT();showScreen('rp');
 
   // First run uses the hand-written opener: instant, and pitched exactly at the
@@ -884,6 +885,7 @@ async function send(){
       // dead box that looks like it still accepts a reply.
       const ia=document.getElementById('input-area');if(ia)ia.style.display='none';
       const hb=document.getElementById('hint-btn');if(hb)hb.style.display='none';
+      const db=document.getElementById('deeper-btn');if(db)db.style.display='none';
       const hx=document.getElementById('hint-box');if(hx)hx.style.display='none';
       if(micWanted)stopMic();
       document.getElementById('tbar').textContent='Session complete — read the feedback below, then finish';
@@ -1607,6 +1609,150 @@ function knowledgePct(k){
   const q=state.quiz&&state.quiz.bySkill&&state.quiz.bySkill[k];
   if(!q||!q.asked)return null;
   return Math.round(q.correct/q.asked*100);
+}
+
+
+// ─── GO DEEPER ────────────────────────────────────────────────────────────────
+// Reading lists are authored rather than generated. Models invent plausible
+// citations, and a student chasing a book that does not exist loses trust in
+// everything else here. These are core texts for each approach.
+const READING = {
+  micro:[["Intentional Interviewing and Counseling","Ivey, Ivey & Zalaquett"],["The Skilled Helper","Gerard Egan"]],
+  personCentred:[["On Becoming a Person","Carl Rogers"],["Person-Centred Counselling in Action","Mearns & Thorne"]],
+  mi:[["Motivational Interviewing: Helping People Change","Miller & Rollnick"],["Building Motivational Interviewing Skills","David Rosengren"]],
+  cbt:[["Cognitive Behavior Therapy: Basics and Beyond","Judith Beck"],["Mind Over Mood","Greenberger & Padesky"]],
+  solutionFocused:[["Keys to Solution in Brief Therapy","Steve de Shazer"],["Solution Focused Brief Therapy: 100 Key Points","Ratner, George & Iveson"]],
+  psychodynamic:[["Psychoanalytic Diagnosis","Nancy McWilliams"],["Individual Psychotherapy and the Science of Psychodynamics","David Malan"]],
+  narrative:[["Narrative Means to Therapeutic Ends","White & Epston"],["What is Narrative Therapy?","Alice Morgan"]],
+  act:[["ACT Made Simple","Russ Harris"],["Get Out of Your Mind and Into Your Life","Steven Hayes"]],
+  ifs:[["No Bad Parts","Richard Schwartz"],["Internal Family Systems Therapy","Schwartz & Sweezy"],["Internal Family Systems Skills Training Manual","Anderson, Sweezy & Schwartz"]],
+  somatic:[["Waking the Tiger","Peter Levine"],["In an Unspoken Voice","Peter Levine"]],
+  sensorimotor:[["Trauma and the Body","Ogden, Minton & Pain"],["Sensorimotor Psychotherapy: Interventions for Trauma and Attachment","Ogden & Fisher"]],
+  relational:[["Attachment in Psychotherapy","David Wallin"],["Negotiating the Therapeutic Alliance","Safran & Muran"]],
+  eft:[["Emotion-Focused Therapy: Coaching Clients to Work Through Their Feelings","Leslie Greenberg"],["Learning Emotion-Focused Therapy","Elliott, Watson, Goldman & Greenberg"]],
+  existential:[["Existential Psychotherapy","Irvin Yalom"],["Existential Counselling and Psychotherapy in Practice","Emmy van Deurzen"]],
+  traumaInformed:[["The Body Keeps the Score","Bessel van der Kolk"],["Trauma and Recovery","Judith Herman"]]
+};
+
+let deeper = {modId:null,skillKey:null,origin:'rp',loaded:false};
+
+function openDeeper(origin){
+  const modId = deeper.modId = state.currentModality || (sess.scenario?getModalityType(sess.scenario.id):'micro');
+  deeper.skillKey = sess.scenario?sess.scenario.skillKey:null;
+  deeper.origin = origin||'rp';
+  deeper.loaded = false;
+  const m=getModality(modId);
+  document.getElementById('dp-title').textContent=m.icon+'  '+m.name;
+  document.getElementById('dp-sub').textContent=deeper.skillKey?SN[deeper.skillKey]:m.desc;
+  document.getElementById('dp-body').innerHTML='<div class="loading">Putting together some background...</div>';
+  document.getElementById('dp-answer').innerHTML='';
+  document.getElementById('dp-q').value='';
+  renderReading(modId);
+  showScreen('deeper');
+  loadDeeper(modId);
+}
+
+function renderReading(modId){
+  const list=READING[modId]||[];
+  const el=document.getElementById('dp-reading');
+  el.innerHTML='';
+  if(!list.length){el.style.display='none';return;}
+  el.style.display='';
+  const h=document.createElement('div');h.className='dp-sec-label';h.textContent='Where to read more';
+  el.appendChild(h);
+  list.forEach(([title,author])=>{
+    const r=document.createElement('div');r.className='dp-book';
+    const t=document.createElement('div');t.className='dp-book-t';t.textContent=title;
+    const a=document.createElement('div');a.className='dp-book-a';a.textContent=author;
+    r.appendChild(t);r.appendChild(a);el.appendChild(r);
+  });
+}
+
+async function loadDeeper(modId){
+  const m=getModality(modId);
+  const skill=deeper.skillKey?SN[deeper.skillKey]:null;
+  const lvl=sess.level==='new'?'They are new to counselling. Use plain English and explain every term as you use it.'
+    :sess.level==='expert'?'They are experienced. Be precise and do not over-explain.'
+    :'They have some knowledge. Name techniques and explain briefly.';
+  const prompt =
+    'Write a short background briefing for a counselling student on '+m.name+
+    (skill?(', focusing on the skill "'+skill+'"'):'')+'.\n\n'+lvl+'\n\n'+
+    'Cover, with a short heading for each on its own line followed by 2-3 sentences:\n'+
+    'WHERE IT CAME FROM - who developed it and what problem it was trying to solve.\n'+
+    'THE BIGGER PICTURE - how '+(skill?'this skill':'this approach')+' fits into the whole model, so they see what it is part of.\n'+
+    'WHAT TRIPS PEOPLE UP - the two or three mistakes trainees most often make, and why they are tempting.\n'+
+    'WHEN IT FITS - the kinds of clients or presentations it suits, and where another approach would serve better.\n\n'+
+    'Be accurate. If something is contested or the evidence is mixed, say so plainly rather than overselling it. '+
+    'Do not invent studies, dates or book titles. Write in plain sentences with no markdown formatting, no asterisks and no bullet characters. Under 320 words total.';
+  try{
+    const txt=await api({model:'claude-sonnet-4-6',max_tokens:900,messages:[{role:'user',content:prompt}]});
+    if(deeper.modId!==modId)return;
+    renderDeeperBody(stripMd(txt));
+    deeper.loaded=true;
+  }catch(e){
+    if(deeper.modId!==modId)return;
+    const b=document.getElementById('dp-body');b.innerHTML='';
+    const p=document.createElement('div');p.className='loading';p.textContent='Could not load that just now.';
+    const again=document.createElement('button');again.className='quiz-cta';again.textContent='Try again';
+    again.onclick=()=>{b.innerHTML='<div class="loading">Putting together some background...</div>';loadDeeper(modId);};
+    b.appendChild(p);b.appendChild(again);
+  }
+}
+
+// The briefing comes back as headed sections; render them as headed blocks.
+function renderDeeperBody(txt){
+  const b=document.getElementById('dp-body');b.innerHTML='';
+  const HEADS=['WHERE IT CAME FROM','THE BIGGER PICTURE','WHAT TRIPS PEOPLE UP','WHEN IT FITS'];
+  let rest=txt;
+  const found=[];
+  HEADS.forEach(h=>{const i=rest.toUpperCase().indexOf(h);if(i>-1)found.push({h:h,i:i});});
+  found.sort((a,c)=>a.i-c.i);
+  if(!found.length){
+    const p=document.createElement('div');p.className='dp-text';p.textContent=txt;b.appendChild(p);return;
+  }
+  found.forEach((f,idx)=>{
+    const end=idx<found.length-1?found[idx+1].i:rest.length;
+    const chunk=rest.slice(f.i+f.h.length,end).replace(/^[\s:.\-]+/,'').trim();
+    const sec=document.createElement('div');sec.className='dp-sec';
+    const lbl=document.createElement('div');lbl.className='dp-sec-label';
+    lbl.textContent=f.h.charAt(0)+f.h.slice(1).toLowerCase();
+    const p=document.createElement('div');p.className='dp-text';p.textContent=chunk;
+    sec.appendChild(lbl);sec.appendChild(p);b.appendChild(sec);
+  });
+}
+
+async function askDeeper(){
+  const q=document.getElementById('dp-q').value.trim();
+  if(!q)return;
+  const m=getModality(deeper.modId);
+  const ans=document.getElementById('dp-answer');
+  ans.innerHTML='<div class="loading">Thinking...</div>';
+  const lvl=sess.level==='new'?'They are new to counselling, so use plain English and explain any term you use.'
+    :sess.level==='expert'?'They are experienced, so be precise.'
+    :'They have some knowledge.';
+  try{
+    const txt=await api({model:'claude-sonnet-4-6',max_tokens:700,messages:[{role:'user',content:
+      'A counselling student is studying '+m.name+(deeper.skillKey?(', specifically '+SN[deeper.skillKey]):'')+
+      ' and asks:\n\n"'+q+'"\n\n'+lvl+'\n\n'+
+      'Answer it directly and practically, in the frame of '+m.name+'. If the question goes beyond what this approach covers, say so and name what does cover it. '+
+      'If something is contested or uncertain, say so rather than sounding more confident than the evidence allows. Do not invent studies, dates or book titles. '+
+      'Plain sentences, no markdown, no asterisks. Under 200 words.'}]});
+    ans.innerHTML='';
+    const d=document.createElement('div');d.className='dp-answer-box';d.textContent=stripMd(txt);
+    ans.appendChild(d);
+  }catch(e){
+    ans.innerHTML='';
+    const d=document.createElement('div');d.className='loading';d.textContent='Could not answer that just now — try again in a moment.';
+    ans.appendChild(d);
+  }
+}
+
+function dpKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();askDeeper();}}
+
+function exitDeeper(){
+  if(deeper.origin==='done')showScreen('done');
+  else if(deeper.origin==='list')goScenarioList();
+  else showScreen('rp');
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
